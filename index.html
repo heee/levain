@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Levain</title>
+<meta name="description" content="Sourdough on a busy schedule — what needs doing next, and when.">
+<meta name="theme-color" content="#EFE9DD">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<link rel="icon" href="./icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Levain">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css?v=1">
+<script src="./config.js"></script>
+</head>
+<body>
+<div id="app">
+  <main id="screen-root"></main>
+</div>
+<nav class="tab-bar" id="tab-bar"></nav>
+<div class="a11y-announcer" id="a11y-announcer" role="status" aria-live="polite"></div>
+<script type="module" src="./app.js?v=1"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    });
+    let refreshedOnce = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshedOnce) return;
+      refreshedOnce = true;
+      window.location.reload();
+    });
+  }
+</script>
+</body>
+</html>

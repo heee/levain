@@ -1,0 +1,107 @@
+:root {
+  --num: "Source Serif 4", Georgia, serif;
+  --ui: "Geist", system-ui, sans-serif;
+  --bg: #EFE9DD;
+  --ink: #221F19;
+  --brand: #A65A2E;
+  --brand-dark: #8A4823;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  font-family: var(--ui);
+  color: var(--ink);
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body { -webkit-font-smoothing: antialiased; }
+
+a { color: var(--brand); text-decoration: none; }
+a:hover { color: var(--brand-dark); }
+
+input, button { font-family: inherit; }
+button { border: none; background: none; cursor: pointer; padding: 0; }
+
+::-webkit-scrollbar { width: 0; height: 0; }
+
+#app {
+  max-width: 520px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  display: flex;
+  flex-direction: column;
+}
+
+#screen-root {
+  flex: 1;
+  overflow-y: auto;
+  padding: 62px 0 90px;
+}
+
+.tab-bar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  max-width: 520px;
+  margin: 0 auto;
+  background: #FBF8F1;
+  border-top: 1px solid #E7DECC;
+  padding: 9px 8px calc(env(safe-area-inset-bottom, 0px) + 14px);
+  display: flex;
+  z-index: 40;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.tab-item .tab-label { font: 400 10px/1 var(--ui); letter-spacing: .02em; }
+.tab-item.active .tab-label { font-weight: 600; }
+
+.a11y-announcer {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* Tablet: three-pane layout mirrors the design's iPad-mini spec — nav rail,
+   list column, detail column. iPad mini's CSS portrait width is 744pt. */
+@media (min-width: 744px) {
+  .tab-bar { display: none; }
+  #app { max-width: none; height: 100dvh; }
+  #screen-root { padding: 0; overflow: hidden; }
+}
+
+.field {
+  width: 100%;
+  box-sizing: border-box;
+  background: #FBF8F1;
+  border: 1px solid #E7DECC;
+  border-radius: 12px;
+  padding: 14px 15px;
+  font: 400 15px/1 var(--ui);
+  color: #221F19;
+  outline: none;
+}
+.field::placeholder { color: #A79C8A; }
+
+.btn-primary {
+  background: var(--brand);
+  color: #FFF;
+  border-radius: 14px;
+  padding: 15px 0;
+  text-align: center;
+  font: 700 15px/1 var(--ui);
+  cursor: pointer;
+}
+.btn-primary:hover { background: var(--brand-dark); }
