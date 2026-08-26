@@ -50,7 +50,19 @@ ported into `game/*.js` as pure functions.
   `@resvg/resvg-js`) is a follow-up, not yet wired here.
 - Worker deployment: no Durable Object here (Levain has no realtime
   multiplayer state) — `worker/index.js` is a single-file Worker with one D1
-  table (`stores`, see `migrations/0001_initial.sql`), safe to paste whole
-  into the Cloudflare dashboard Quick Edit or deploy via `wrangler`/the
-  Cloudflare API MCP plugin. Required bindings/secrets are documented at the
-  top of that file.
+  table (`stores`, see `migrations/0001_initial.sql`). **`npx wrangler deploy`
+  works on this machine** (`CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` are
+  already in the environment) — that's the deploy path, not the Cloudflare
+  API MCP plugin's `execute` tool, whose token is read-only for write
+  operations (Workers scripts PUT, KV namespace POST all fail with
+  "Authentication error"; only the dedicated `cloudflare-bindings` D1 tools
+  have write access). Live: Worker `levain-worker` at
+  `https://levain-worker.jhenningbuchholz.workers.dev`, D1 database
+  `levain-db` (id `27f236a5-a4c2-4846-ba42-3463bad9d202`, bound as `DB`),
+  `ALLOWED_ORIGIN` = `https://heee.github.io`, `APP_KEY` secret set via
+  `wrangler secret put`. `config.js` in the repo already points at the live
+  Worker. GitHub Pages serves the client from `master` at
+  `https://heee.github.io/levain/` (repo: `heee/levain`).
+  Redeploy after `worker/index.js` changes with `npx wrangler deploy`; after
+  a schema change, apply the new migration with
+  `npx wrangler d1 execute levain-db --remote --file=migrations/000X_*.sql`.

@@ -8,4 +8,4 @@ ALLOWED_ORIGIN = "https://heee.github.io"
 [[d1_databases]]
 binding = "DB"
 database_name = "levain-db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "27f236a5-a4c2-4846-ba42-3463bad9d202"
