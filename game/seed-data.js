@@ -42,6 +42,12 @@ export function seedRecipes() {
   ];
 }
 
+// Every baker gets their own copy of the starter recipe set (not a shared
+// one — see game/ownership.js), so ids must be unique per copy.
+export function seedRecipesFor(accountId) {
+  return seedRecipes().map((r) => ({ ...r, id: r.id + "-" + accountId, ownerId: accountId }));
+}
+
 export function seedBakes(n = Date.now()) {
   const MIN = 60000;
   const ownerId = "a-hen";

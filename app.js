@@ -142,7 +142,9 @@ setInterval(() => {
   // Cheap re-render on a slow clock tick — screens are inexpensive to
   // rebuild (no virtual-DOM diffing needed at this scale) and this is what
   // keeps "in 12m" style labels honest without any per-screen timers.
-  render();
+  // Skip it on the welcome screen: nothing there depends on `now`, and
+  // wiping/rebuilding the DOM every 15s made the loaf image visibly flicker.
+  if (state.screen !== "welcome") render();
 }, 15000);
 
 if (!syncCode) {

@@ -34,13 +34,14 @@ export function createJsonStorage(backing) {
   };
 }
 
-import { seedAccounts, seedRecipes, seedBakes, seedStarters, seedLog } from "./game/seed-data.js";
+import { seedAccounts, seedRecipesFor, seedBakes, seedStarters, seedLog } from "./game/seed-data.js";
 
 export function defaultStore() {
   const now = Date.now();
+  const accounts = seedAccounts();
   return {
-    accounts: seedAccounts(),
-    recipes: seedRecipes(),
+    accounts,
+    recipes: accounts.flatMap((a) => seedRecipesFor(a.id)),
     bakes: seedBakes(now),
     starters: seedStarters(now),
     log: seedLog(),
@@ -48,10 +49,13 @@ export function defaultStore() {
   };
 }
 
-// Bakes/starters/log belong to whoever created them (see game/ownership.js);
-// recipes stay shared. Anything persisted before ownership existed is
+// Bakes/starters/log/recipes all belong to whoever created them (see
+// game/ownership.js — sharing recipes across a household is a deliberate
+// follow-up, not built yet). Anything persisted before ownership existed is
 // attributed to the first account, rather than left ownerless (which would
 // make it vanish for everyone) or shown to every baker (the original bug).
+// Any account that still has no recipes of its own gets its own copy of the
+// starter set, same as a brand-new baker would.
 export function normalizeStore(raw) {
   if (!raw || typeof raw !== "object") return defaultStore();
   const d = defaultStore();
@@ -60,9 +64,14 @@ export function normalizeStore(raw) {
   const bakes = Array.isArray(raw.bakes) ? raw.bakes : d.bakes;
   const starters = Array.isArray(raw.starters) && raw.starters.length ? raw.starters : d.starters;
   const log = Array.isArray(raw.log) ? raw.log : d.log;
+  const rawRecipes = Array.isArray(raw.recipes) ? raw.recipes : d.recipes;
+  let recipes = rawRecipes.map((r) => (r.ownerId ? r : { ...r, ownerId: firstId }));
+  accounts.forEach((a) => {
+    if (!recipes.some((r) => r.ownerId === a.id)) recipes = recipes.concat(seedRecipesFor(a.id));
+  });
   return {
     accounts,
-    recipes: Array.isArray(raw.recipes) ? raw.recipes : d.recipes,
+    recipes,
     bakes: bakes.map((b) => (b.ownerId ? b : { ...b, ownerId: firstId })),
     starters: starters.map((s) => (s.ownerId ? s : { ...s, ownerId: firstId })),
     log: log.map((e) => (e.ownerId ? e : { ...e, ownerId: firstId })),

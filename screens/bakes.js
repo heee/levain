@@ -6,7 +6,7 @@ import { fmt, rel, tone, dayTag, brief, human, MIN } from "../game/schedule.js";
 import { projForBake, currentForBake, recipeFor, stepsForBake } from "../game/bakes.js";
 import { METHOD_LABELS } from "../game/methods.js";
 import { markDone, clearDone } from "./now.js";
-import { bakesFor } from "../game/ownership.js";
+import { bakesFor, recipesFor } from "../game/ownership.js";
 
 export function renderBakes(ctx) {
   const { state } = ctx;
@@ -52,9 +52,10 @@ export function renderBakes(ctx) {
 function newBakeMenu(ctx) {
   const { state } = ctx;
   const store = state.store;
+  const acc = store.accounts[state.accountIdx] || store.accounts[0];
   const menu = el("div", { style: "position:absolute;top:48px;right:0;width:266px;max-height:330px;overflow-y:auto;background:#FBF8F1;border:1px solid #E4DAC6;border-radius:16px;box-shadow:0 14px 34px rgba(60,48,28,.16);z-index:30" });
   menu.appendChild(el("div", { style: "padding:12px 14px;font:600 10.5px/1 var(--num);letter-spacing:.12em;text-transform:uppercase;color:#A79C8A;border-bottom:1px solid #EFE8DA", text: "Start a bake from" }));
-  store.recipes.forEach((r) => {
+  recipesFor(store, acc.id).forEach((r) => {
     menu.appendChild(el("div", {
       style: "padding:12px 14px;border-bottom:1px solid #EFE8DA;cursor:pointer",
       onClick: () => { startBakeFromRecipe(ctx, r.id); },

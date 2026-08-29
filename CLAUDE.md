@@ -36,6 +36,14 @@ ported into `game/*.js` as pure functions.
   `METHODS` template — that stays global across recipes on the same method.
 - Bump `sw.js`'s `CACHE_NAME` on every shipped change, and add any new file
   to its `CORE` list.
+- **Every baker's data is private to them** — bakes, starters, log entries and
+  recipes all carry an `ownerId` and are filtered per account via
+  `game/ownership.js` (`bakesFor`/`startersFor`/`logFor`/`recipesFor`). A new
+  baker gets their own copy of the starter recipe set (`seedRecipesFor` in
+  `game/seed-data.js`), not a reference to anyone else's — editing one
+  person's "Country Loaf" never touches another's. **Follow-up, not built
+  yet:** a real shared/collaborative recipe (one recipe multiple bakers edit
+  together) — currently every "share" is a one-time copy at account creation.
 - **For major/new-feature work, ask clarifying questions one-by-one before
   planning.** Don't guess at ambiguous requirements or batch every open
   question into one message.

@@ -1,7 +1,7 @@
 // Levain — Welcome / baker switcher. See docs/design-reference.html isWelcome block.
 
 import { el } from "./shared-ui.js";
-import { TINTS } from "../game/seed-data.js";
+import { TINTS, seedRecipesFor } from "../game/seed-data.js";
 
 export function renderWelcome(ctx) {
   const { state } = ctx;
@@ -24,7 +24,7 @@ export function renderWelcome(ctx) {
   }));
   wrap.appendChild(el("div", {
     style: "flex:none;align-self:center;width:280px;font:400 14.5px/1.55 var(--ui);color:#6E6558;margin-top:12px;text-align:center",
-    text: "Each baker keeps their own bakes and starter. Recipes stay shared for the household.",
+    text: "Each baker keeps their own bakes, starter and recipes — everyone starts from the same recipe set.",
   }));
 
   const row = el("div", { style: "flex:none;display:flex;gap:6px;margin-top:32px;align-items:flex-start;flex-wrap:wrap;justify-content:center" });
@@ -75,7 +75,9 @@ export function renderWelcome(ctx) {
       class: "btn-primary", style: "margin-top:20px;user-select:none", text: "Start baking",
       onClick: () => {
         const name = (state.newName || "").trim() || "New baker";
-        state.store.accounts.push({ id: "a-" + Date.now(), name, initial: name[0].toUpperCase(), tint: TINTS[state.newTint || 0] });
+        const id = "a-" + Date.now();
+        state.store.accounts.push({ id, name, initial: name[0].toUpperCase(), tint: TINTS[state.newTint || 0] });
+        state.store.recipes.push(...seedRecipesFor(id));
         state.accountIdx = state.store.accounts.length - 1;
         state.newOpen = false; state.newName = ""; state.screen = "app"; state.tab = "now";
         ctx.persist(); ctx.render();

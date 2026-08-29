@@ -8,10 +8,13 @@ import { proj } from "../game/schedule.js";
 import { METHOD_TITLES } from "../game/methods.js";
 import { registerCustomMethod } from "../game/methods.js";
 import { startBakeFromRecipe } from "./bakes.js";
+import { recipesFor } from "../game/ownership.js";
 
 export function renderRecipes(ctx) {
   const { state } = ctx;
   const store = state.store;
+  const acc = store.accounts[state.accountIdx] || store.accounts[0];
+  const myRecipes = recipesFor(store, acc.id);
   const wrap = el("div", { style: "padding:0 20px" });
 
   const recipe = recipeFor(store, state.openRecipeId);
@@ -31,7 +34,7 @@ export function renderRecipes(ctx) {
   wrap.appendChild(head);
 
   const list = el("div", { style: "display:flex;flex-direction:column;gap:10px;margin-top:20px" });
-  store.recipes.forEach((r) => {
+  myRecipes.forEach((r) => {
     const liq = r.rows.find((x) => /water|milk/i.test(x[0]));
     const fl = r.rows.filter((x) => /flour|wheat|rye|semolina/i.test(x[0])).reduce((a, x) => a + x[1], 0);
     const authored = liq && liq[2] && liq[2] !== "—" ? liq[2] : null;
@@ -152,6 +155,7 @@ function recipeBuilder(ctx) {
 function saveRecipe(ctx) {
   const { state } = ctx;
   const store = state.store;
+  const acc = store.accounts[state.accountIdx] || store.accounts[0];
   const nr = state.nr;
   const name = (nr.name || "").trim() || "Untitled recipe";
   const ing = (nr.ing || []).filter((r) => (r.name || "").trim());
@@ -170,7 +174,7 @@ function saveRecipe(ctx) {
       id: "s" + i, label: s.label.trim(), dur: Math.max(1, Number(s.dur) || 30), act: Math.max(0, Number(s.act) || 0), hint: "", cue: "",
     })));
   }
-  store.recipes.push({ id, name, sub: (nr.sub || "").trim() || "Your own formula.", method, rows: rows.length ? rows : [["Flour", 500, "100%"]], last: "Never — just written." });
+  store.recipes.push({ id, name, sub: (nr.sub || "").trim() || "Your own formula.", method, rows: rows.length ? rows : [["Flour", 500, "100%"]], last: "Never — just written.", ownerId: acc.id });
   state.builder = false;
   state.openRecipeId = id;
   state.scale = 1;
