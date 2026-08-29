@@ -74,3 +74,11 @@ ported into `game/*.js` as pure functions.
   Redeploy after `worker/index.js` changes with `npx wrangler deploy`; after
   a schema change, apply the new migration with
   `npx wrangler d1 execute levain-db --remote --file=migrations/000X_*.sql`.
+- **Ship every change automatically — don't ask first.** After finishing a
+  change, commit and `git push origin master` right away (this doubles as a
+  live GitHub Pages deploy). If `worker/index.js` changed, also run
+  `npx wrangler deploy` yourself (and apply any new D1 migration) — do this
+  without waiting to be asked. Standard git safety rules still apply
+  (real commits, no force-push/history-rewrite/`--no-verify` without explicit
+  request); this authorization only covers the normal commit-and-push-live
+  workflow for routine work in this repo.
