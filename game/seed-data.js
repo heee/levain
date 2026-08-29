@@ -5,11 +5,16 @@
 
 export const TINTS = ["#E7D3B2", "#E8C7B6", "#D9E0CE", "#DCD6E0"];
 
+// Seed records stamp updatedAt: 0 (not Date.now()) — a placeholder must
+// always look "older" than any real edit, from any device, at any time, or
+// a brand-new never-synced device's seed data would win a merge against
+// real data just because it was instantiated more recently. See sync.js /
+// worker/index.js for how updatedAt is used to merge records across devices.
 export function seedAccounts() {
   return [
-    { id: "a-hen", name: "Hen", initial: "H", tint: "#E7D3B2" },
-    { id: "a-marta", name: "Marta", initial: "M", tint: "#E8C7B6" },
-    { id: "a-guest", name: "Guest", initial: "G", tint: "#D9E0CE" },
+    { id: "a-hen", name: "Hen", initial: "H", tint: "#E7D3B2", updatedAt: 0, deleted: false },
+    { id: "a-marta", name: "Marta", initial: "M", tint: "#E8C7B6", updatedAt: 0, deleted: false },
+    { id: "a-guest", name: "Guest", initial: "G", tint: "#D9E0CE", updatedAt: 0, deleted: false },
   ];
 }
 
@@ -45,7 +50,7 @@ export function seedRecipes() {
 // Every baker gets their own copy of the starter recipe set (not a shared
 // one — see game/ownership.js), so ids must be unique per copy.
 export function seedRecipesFor(accountId) {
-  return seedRecipes().map((r) => ({ ...r, id: r.id + "-" + accountId, ownerId: accountId }));
+  return seedRecipes().map((r) => ({ ...r, id: r.id + "-" + accountId, ownerId: accountId, updatedAt: 0, deleted: false }));
 }
 
 export function seedBakes(n = Date.now()) {
@@ -54,14 +59,14 @@ export function seedBakes(n = Date.now()) {
   return [
     { id: "b1", name: "Sunday Split", recipe: "country", loaves: 3, ownerId,
       variants: [{ name: "Plain", add: "as is" }, { name: "Sesame–poppy", add: "40g seed crust" }, { name: "Cheddar–jalapeño", add: "90g cheddar, 40g jalapeño" }],
-      done: { feed: n - 13 * 60 * MIN, mix: n - 37 * MIN, autolyse: n - 27 * MIN } },
+      done: { feed: n - 13 * 60 * MIN, mix: n - 37 * MIN, autolyse: n - 27 * MIN }, updatedAt: 0, deleted: false },
     { id: "b2", name: "Rye 20%", recipe: "rye", loaves: 1, variants: [], ownerId,
-      done: { feed: n - 18 * 60 * MIN, mix: n - 8 * 60 * MIN, autolyse: n - 7.5 * 60 * MIN, sf1: n - 7 * 60 * MIN, sf2: n - 6.5 * 60 * MIN, sf3: n - 7 * 60 * MIN } },
+      done: { feed: n - 18 * 60 * MIN, mix: n - 8 * 60 * MIN, autolyse: n - 7.5 * 60 * MIN, sf1: n - 7 * 60 * MIN, sf2: n - 6.5 * 60 * MIN, sf3: n - 7 * 60 * MIN }, updatedAt: 0, deleted: false },
     { id: "b3", name: "Seeded Whole Wheat", recipe: "seeded", loaves: 2, variants: [], ownerId,
-      done: { feed: n - 30 * 60 * MIN, mix: n - 22 * 60 * MIN, autolyse: n - 21.5 * 60 * MIN, sf1: n - 21 * 60 * MIN, sf2: n - 20.5 * 60 * MIN, sf3: n - 20 * 60 * MIN, bulk: n - 11 * 60 * MIN, preshape: n - 10.5 * 60 * MIN, shape: n - 9 * 60 * MIN } },
-    { id: "b5", name: "Brioche", recipe: "brioche", loaves: 2, variants: [], ownerId, done: { "k-mix": n - 8 * MIN } },
+      done: { feed: n - 30 * 60 * MIN, mix: n - 22 * 60 * MIN, autolyse: n - 21.5 * 60 * MIN, sf1: n - 21 * 60 * MIN, sf2: n - 20.5 * 60 * MIN, sf3: n - 20 * 60 * MIN, bulk: n - 11 * 60 * MIN, preshape: n - 10.5 * 60 * MIN, shape: n - 9 * 60 * MIN }, updatedAt: 0, deleted: false },
+    { id: "b5", name: "Brioche", recipe: "brioche", loaves: 2, variants: [], ownerId, done: { "k-mix": n - 8 * MIN }, updatedAt: 0, deleted: false },
     { id: "b4", name: "Jalapeño Cheddar", recipe: "cheddar", loaves: 1, variants: [], ownerId,
-      done: { feed: n - 40 * 60 * MIN, mix: n - 32 * 60 * MIN, autolyse: n - 31.5 * 60 * MIN, sf1: n - 31 * 60 * MIN, sf2: n - 30.5 * 60 * MIN, sf3: n - 30 * 60 * MIN, bulk: n - 23 * 60 * MIN, preshape: n - 22.5 * 60 * MIN, shape: n - 22 * 60 * MIN, cold: n - 1.4 * 60 * MIN, preheat: n - 24 * MIN, bake1: n - 14 * MIN } },
+      done: { feed: n - 40 * 60 * MIN, mix: n - 32 * 60 * MIN, autolyse: n - 31.5 * 60 * MIN, sf1: n - 31 * 60 * MIN, sf2: n - 30.5 * 60 * MIN, sf3: n - 30 * 60 * MIN, bulk: n - 23 * 60 * MIN, preshape: n - 22.5 * 60 * MIN, shape: n - 22 * 60 * MIN, cold: n - 1.4 * 60 * MIN, preheat: n - 24 * MIN, bake1: n - 14 * MIN }, updatedAt: 0, deleted: false },
   ];
 }
 
@@ -74,24 +79,24 @@ export function seedStarters(n = Date.now()) {
       { at: n - 33 * 60 * MIN, s: 20, f: 100, w: 100, flour: "AP + rye", peak: "8h00" },
       { at: n - 57 * 60 * MIN, s: 25, f: 100, w: 100, flour: "AP", peak: "6h45" },
       { at: n - 81 * 60 * MIN, s: 20, f: 100, w: 100, flour: "AP + rye", peak: "8h15" },
-    ] },
+    ], updatedAt: 0, deleted: false },
     { id: "ada", name: "Ada", age: "Eight months · wholegrain rye", where: "Fridge", peakMin: 300, ownerId, feeds: [
       { at: n - 4 * 60 * MIN, s: 30, f: 90, w: 110, flour: "Rye", peak: "5h00" },
       { at: n - 52 * 60 * MIN, s: 30, f: 90, w: 110, flour: "Rye", peak: "4h45" },
       { at: n - 100 * 60 * MIN, s: 30, f: 90, w: 110, flour: "Rye", peak: "5h15" },
-    ] },
+    ], updatedAt: 0, deleted: false },
   ];
 }
 
 export function seedLog() {
   const ownerId = "a-hen";
   return [
-    { name: "Country Loaf", when: "Sunday 17 Aug · 4 loaves", stars: "★★★★☆", ownerId,
+    { id: "log-" + ownerId + "-0", name: "Country Loaf", when: "Sunday 17 Aug · 4 loaves", stars: "★★★★☆", ownerId,
       notes: "Bulk ran 6h40 in a 23° kitchen. Best ear I've had. Crumb slightly tight in the middle third.",
-      next: "Push bulk another 30 minutes and shape a touch looser." },
-    { name: "Rye 20%", when: "Sat 9 Aug · 2 loaves", stars: "★★★☆☆", ownerId,
+      next: "Push bulk another 30 minutes and shape a touch looser.", updatedAt: 0, deleted: false },
+    { id: "log-" + ownerId + "-1", name: "Rye 20%", when: "Sat 9 Aug · 2 loaves", stars: "★★★☆☆", ownerId,
       notes: "Cut the cold proof to 9h because I needed the fridge. Paid for it — flat-ish and gummy at the base.",
-      next: "Don't rush the fridge. Full 13h or don't bother." },
+      next: "Don't rush the fridge. Full 13h or don't bother.", updatedAt: 0, deleted: false },
   ];
 }
 

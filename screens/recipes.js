@@ -9,6 +9,7 @@ import { METHOD_TITLES } from "../game/methods.js";
 import { registerCustomMethod } from "../game/methods.js";
 import { startBakeFromRecipe } from "./bakes.js";
 import { recipesFor } from "../game/ownership.js";
+import { newId } from "../game/ids.js";
 
 export function renderRecipes(ctx) {
   const { state } = ctx;
@@ -166,7 +167,7 @@ function saveRecipe(ctx) {
     return [r.name.trim(), g, base ? Math.round((g / base) * 1000) / 10 + "%" : "—"];
   });
   const custom = (nr.steps || []).filter((s) => (s.label || "").trim());
-  const id = "r" + Date.now();
+  const id = newId("r");
   let method = nr.method || "sourdough";
   if (custom.length) {
     method = "m" + id;
@@ -174,7 +175,7 @@ function saveRecipe(ctx) {
       id: "s" + i, label: s.label.trim(), dur: Math.max(1, Number(s.dur) || 30), act: Math.max(0, Number(s.act) || 0), hint: "", cue: "",
     })));
   }
-  store.recipes.push({ id, name, sub: (nr.sub || "").trim() || "Your own formula.", method, rows: rows.length ? rows : [["Flour", 500, "100%"]], last: "Never — just written.", ownerId: acc.id });
+  store.recipes.push({ id, name, sub: (nr.sub || "").trim() || "Your own formula.", method, rows: rows.length ? rows : [["Flour", 500, "100%"]], last: "Never — just written.", ownerId: acc.id, updatedAt: Date.now(), deleted: false });
   state.builder = false;
   state.openRecipeId = id;
   state.scale = 1;
@@ -212,7 +213,7 @@ function recipeDetail(ctx, recipe) {
   } else {
     topRow.appendChild(el("div", {
       style: "display:flex;align-items:center;gap:7px;background:#A65A2E;color:#FFF;border-radius:11px;padding:9px 13px;cursor:pointer;flex:none",
-      onClick: () => { state.editing = false; ctx.persist(); ctx.render(); },
+      onClick: () => { state.editing = false; recipe.updatedAt = Date.now(); ctx.persist(); ctx.render(); },
     }, [
       el("div", { html: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6l4.4 4.4L19 7.4"></path></svg>' }),
       el("span", { style: "font:600 12.5px/1 var(--ui)", text: "Done" }),
@@ -256,8 +257,9 @@ function recipeDetail(ctx, recipe) {
       el("div", { style: "display:flex;gap:9px;margin-top:13px" }, [
         el("div", { style: "flex:1;background:#F0E9DC;color:#5C5447;border-radius:11px;padding:11px 0;text-align:center;font:600 13.5px/1 var(--ui);cursor:pointer", text: "Keep it", onClick: () => { state.rDel = false; ctx.render(); } }),
         el("div", { style: "flex:1;background:#B03A2B;color:#FFF;border-radius:11px;padding:11px 0;text-align:center;font:700 13.5px/1 var(--ui);cursor:pointer", text: "Delete", onClick: () => {
-          store.recipes = store.recipes.filter((r) => r.id !== recipe.id);
-          store.bakes = store.bakes.filter((b) => b.recipe !== recipe.id);
+          const now = Date.now();
+          store.recipes.forEach((r) => { if (r.id === recipe.id) { r.deleted = true; r.updatedAt = now; } });
+          store.bakes.forEach((b) => { if (b.recipe === recipe.id) { b.deleted = true; b.updatedAt = now; } });
           state.rDel = false; state.openRecipeId = null; state.editing = false; state.idx = 0;
           ctx.persist(); ctx.render();
         } }),

@@ -2,6 +2,7 @@
 
 import { el } from "./shared-ui.js";
 import { TINTS, seedRecipesFor } from "../game/seed-data.js";
+import { newId } from "../game/ids.js";
 
 export function renderWelcome(ctx) {
   const { state } = ctx;
@@ -75,8 +76,8 @@ export function renderWelcome(ctx) {
       class: "btn-primary", style: "margin-top:20px;user-select:none", text: "Start baking",
       onClick: () => {
         const name = (state.newName || "").trim() || "New baker";
-        const id = "a-" + Date.now();
-        state.store.accounts.push({ id, name, initial: name[0].toUpperCase(), tint: TINTS[state.newTint || 0] });
+        const id = newId("a");
+        state.store.accounts.push({ id, name, initial: name[0].toUpperCase(), tint: TINTS[state.newTint || 0], updatedAt: Date.now(), deleted: false });
         state.store.recipes.push(...seedRecipesFor(id));
         state.accountIdx = state.store.accounts.length - 1;
         state.newOpen = false; state.newName = ""; state.screen = "app"; state.tab = "now";

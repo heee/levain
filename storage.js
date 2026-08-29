@@ -5,7 +5,6 @@
 
 export const LOCAL_KEYS = {
   store: "levain.store.v1",
-  syncCode: "levain.syncCode.v1",
   currentAccount: "levain.currentAccount.v1",
 };
 
@@ -35,6 +34,7 @@ export function createJsonStorage(backing) {
 }
 
 import { seedAccounts, seedRecipesFor, seedBakes, seedStarters, seedLog } from "./game/seed-data.js";
+import { newId } from "./game/ids.js";
 
 export function defaultStore() {
   const now = Date.now();
@@ -56,15 +56,27 @@ export function defaultStore() {
 // make it vanish for everyone) or shown to every baker (the original bug).
 // Any account that still has no recipes of its own gets its own copy of the
 // starter set, same as a brand-new baker would.
+//
+// Every record also needs updatedAt/deleted for cross-device merge (see
+// game/merge.js, sync.js). Records already carrying updatedAt (fresh seed
+// data stamped 0, or anything already synced) pass through unchanged; only
+// genuinely pre-migration local records (no updatedAt at all) backfill to
+// Date.now() here — "treat it as just-touched" — so real data never looks
+// like a worthless placeholder and loses a merge to a less-complete device.
+function backfillRecord(r) {
+  const out = { ...r, updatedAt: r.updatedAt ?? Date.now(), deleted: r.deleted ?? false };
+  return out;
+}
+
 export function normalizeStore(raw) {
   if (!raw || typeof raw !== "object") return defaultStore();
   const d = defaultStore();
-  const accounts = Array.isArray(raw.accounts) && raw.accounts.length ? raw.accounts : d.accounts;
+  const accounts = (Array.isArray(raw.accounts) && raw.accounts.length ? raw.accounts : d.accounts).map(backfillRecord);
   const firstId = accounts[0].id;
-  const bakes = Array.isArray(raw.bakes) ? raw.bakes : d.bakes;
-  const starters = Array.isArray(raw.starters) && raw.starters.length ? raw.starters : d.starters;
-  const log = Array.isArray(raw.log) ? raw.log : d.log;
-  const rawRecipes = Array.isArray(raw.recipes) ? raw.recipes : d.recipes;
+  const bakes = (Array.isArray(raw.bakes) ? raw.bakes : d.bakes).map(backfillRecord);
+  const starters = (Array.isArray(raw.starters) && raw.starters.length ? raw.starters : d.starters).map(backfillRecord);
+  const log = (Array.isArray(raw.log) ? raw.log : d.log).map(backfillRecord).map((e) => (e.id ? e : { ...e, id: newId("log") }));
+  const rawRecipes = (Array.isArray(raw.recipes) ? raw.recipes : d.recipes).map(backfillRecord);
   let recipes = rawRecipes.map((r) => (r.ownerId ? r : { ...r, ownerId: firstId }));
   accounts.forEach((a) => {
     if (!recipes.some((r) => r.ownerId === a.id)) recipes = recipes.concat(seedRecipesFor(a.id));
@@ -74,7 +86,7 @@ export function normalizeStore(raw) {
     recipes,
     bakes: bakes.map((b) => (b.ownerId ? b : { ...b, ownerId: firstId })),
     starters: starters.map((s) => (s.ownerId ? s : { ...s, ownerId: firstId })),
-    log: log.map((e) => (e.ownerId ? e : { ...e, ownerId: firstId })),
+    log,
     updatedAt: raw.updatedAt || Date.now(),
   };
 }

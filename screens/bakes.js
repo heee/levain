@@ -7,6 +7,7 @@ import { projForBake, currentForBake, recipeFor, stepsForBake } from "../game/ba
 import { METHOD_LABELS } from "../game/methods.js";
 import { markDone, clearDone } from "./now.js";
 import { bakesFor, recipesFor } from "../game/ownership.js";
+import { newId } from "../game/ids.js";
 
 export function renderBakes(ctx) {
   const { state } = ctx;
@@ -74,7 +75,7 @@ export function startBakeFromRecipe(ctx, recipeId) {
   const r = recipeFor(store, recipeId);
   if (!r) return;
   const at = state.startAbs != null ? state.startAbs : state.now + (state.startPick || 0) * MIN;
-  const nb = { id: "b" + Date.now(), name: r.name, recipe: r.id, loaves: 1, variants: [], done: {}, startAt: at, ownerId: acc.id };
+  const nb = { id: newId("b"), name: r.name, recipe: r.id, loaves: 1, variants: [], done: {}, startAt: at, ownerId: acc.id, updatedAt: Date.now(), deleted: false };
   store.bakes.push(nb);
   state.idx = bakesFor(store, acc.id).length - 1;
   state.tab = "bakes"; state.view = "timeline"; state.newBakeOpen = false; state.openRecipeId = null; state.editing = false; state.scale = 1;

@@ -1,12 +1,16 @@
-// Levain — Cloudflare Worker. Deliberately tiny: one D1 table holding one
-// JSON blob per sync code (the whole household store — accounts, bakes,
-// recipes, starters, log). No realtime, no per-field mutations — the app is
-// local-first (see storage.js) and just pushes/pulls the whole blob every
-// so often (see sync.js). Last-write-wins by the blob's own `updatedAt`.
+// Levain — Cloudflare Worker. Deliberately tiny: one D1 table per
+// collection (accounts, recipes, bakes, starters, log_entries), each row a
+// synced record. No sync codes, no per-tenant partitioning — this is a
+// single-tenant deployment (one Worker = one household), so the whole
+// database is the one store. No realtime, no Durable Object — the app is
+// local-first (see storage.js) and just syncs the whole store every so
+// often (see sync.js). Per-record last-write-wins by each record's own
+// `updatedAt` (see game/merge.js for the client-side equivalent).
 //
-//   GET  /store?code=XXXX          -> { store } | { store: null }
-//   POST /store  { code, store }   -> upserts if store.updatedAt is newer
-//                                      than what's stored (or nothing stored yet)
+//   POST /sync  { store: { accounts, recipes, bakes, starters, log } }
+//     -> upserts each incoming record per-table if it's newer than what's
+//        stored (or nothing stored yet), then returns the full merged
+//        household store: { store }
 //
 // Required Worker secrets/variables (Settings -> Variables and Secrets):
 //   APP_KEY        (secret)  any string; must match APP_KEY in config.js — a
@@ -14,9 +18,10 @@
 //   ALLOWED_ORIGIN (var)     e.g. "https://<you>.github.io"
 //
 // Required bindings (Settings -> Bindings):
-//   DB  -> D1 database containing migrations/0001_initial.sql
+//   DB  -> D1 database containing migrations/0001_initial.sql and
+//          migrations/0002_per_record.sql
 
-const CODE_RE = /^[a-z0-9-]{3,64}$/i;
+const TABLES = { accounts: "accounts", recipes: "recipes", bakes: "bakes", starters: "starters", log: "log_entries" };
 
 export default {
   async fetch(request, env) {
@@ -24,35 +29,47 @@ export default {
     const cors = corsHeaders(env);
     if (request.method === "OPTIONS") return new Response(null, { headers: cors });
 
-    if (url.pathname === "/store" && request.method === "GET") {
-      const code = url.searchParams.get("code") || "";
-      if (!CODE_RE.test(code)) return json({ error: "invalid code" }, 400, cors);
-      try {
-        const row = await env.DB.prepare("SELECT data, updated_at FROM stores WHERE code = ?").bind(code).first();
-        if (!row) return json({ store: null }, 200, cors);
-        const store = JSON.parse(row.data);
-        return json({ store }, 200, cors);
-      } catch (e) {
-        return json({ error: e.message }, 502, cors);
-      }
-    }
-
-    if (url.pathname === "/store" && request.method === "POST") {
+    if (url.pathname === "/sync" && request.method === "POST") {
       if (!checkAppKey(request, env)) return json({ error: "unauthorized" }, 401, cors);
       const body = await safeJson(request);
-      const code = typeof body?.code === "string" ? body.code : "";
-      const store = body?.store;
-      if (!CODE_RE.test(code) || !store || typeof store !== "object") return json({ error: "invalid payload" }, 400, cors);
-      const updatedAt = Number(store.updatedAt) || Date.now();
+      const incoming = body?.store;
+      if (!incoming || typeof incoming !== "object") return json({ error: "invalid payload" }, 400, cors);
+
       try {
-        const existing = await env.DB.prepare("SELECT updated_at FROM stores WHERE code = ?").bind(code).first();
-        if (existing && Number(existing.updated_at) >= updatedAt) {
-          return json({ ok: true, skipped: true }, 200, cors);
+        for (const [key, table] of Object.entries(TABLES)) {
+          for (const rec of Array.isArray(incoming[key]) ? incoming[key] : []) {
+            if (!rec || typeof rec.id !== "string" || !rec.id) continue;
+            const { id, ownerId, updatedAt, deleted, ...rest } = rec;
+            const ts = Number(updatedAt) || 0;
+            const existing = await env.DB.prepare(`SELECT updated_at FROM ${table} WHERE id = ?`).bind(id).first();
+            if (existing && Number(existing.updated_at) >= ts) continue;
+            if (table === "accounts") {
+              await env.DB.prepare(
+                `INSERT INTO accounts (id, data, updated_at, deleted) VALUES (?, ?, ?, ?)
+                 ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at, deleted = excluded.deleted`
+              ).bind(id, JSON.stringify(rest), ts, deleted ? 1 : 0).run();
+            } else {
+              await env.DB.prepare(
+                `INSERT INTO ${table} (id, owner_id, data, updated_at, deleted) VALUES (?, ?, ?, ?, ?)
+                 ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at, deleted = excluded.deleted`
+              ).bind(id, ownerId || "", JSON.stringify(rest), ts, deleted ? 1 : 0).run();
+            }
+          }
         }
-        await env.DB.prepare(
-          "INSERT INTO stores (code, data, updated_at) VALUES (?, ?, ?) ON CONFLICT(code) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at"
-        ).bind(code, JSON.stringify(store), updatedAt).run();
-        return json({ ok: true }, 200, cors);
+
+        const merged = {};
+        for (const [key, table] of Object.entries(TABLES)) {
+          const cols = table === "accounts" ? "id, data, updated_at, deleted" : "id, owner_id, data, updated_at, deleted";
+          const { results } = await env.DB.prepare(`SELECT ${cols} FROM ${table}`).all();
+          merged[key] = results.map((row) => ({
+            id: row.id,
+            ...(table !== "accounts" ? { ownerId: row.owner_id } : {}),
+            ...JSON.parse(row.data),
+            updatedAt: row.updated_at,
+            deleted: !!row.deleted,
+          }));
+        }
+        return json({ store: merged }, 200, cors);
       } catch (e) {
         return json({ error: e.message }, 502, cors);
       }

@@ -13,17 +13,17 @@ export function currentAccount(store, accountIdx) {
 }
 
 export function recipesFor(store, accountId) {
-  return store.recipes.filter((r) => r.ownerId === accountId);
+  return store.recipes.filter((r) => r.ownerId === accountId && !r.deleted);
 }
 
 export function bakesFor(store, accountId) {
-  return store.bakes.filter((b) => b.ownerId === accountId);
+  return store.bakes.filter((b) => b.ownerId === accountId && !b.deleted);
 }
 
 export function startersFor(store, accountId) {
-  return store.starters.filter((s) => s.ownerId === accountId);
+  return store.starters.filter((s) => s.ownerId === accountId && !s.deleted);
 }
 
 export function logFor(store, accountId) {
-  return store.log.filter((e) => e.ownerId === accountId);
+  return store.log.filter((e) => e.ownerId === accountId && !e.deleted);
 }

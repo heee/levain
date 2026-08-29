@@ -160,6 +160,7 @@ function starterTeaser(ctx) {
 export function markDone(ctx, bake, stepId, backMin = 0) {
   const { state } = ctx;
   bake.done = { ...(bake.done || {}), [stepId]: Date.now() - backMin * MIN };
+  bake.updatedAt = Date.now();
   ctx.persist();
   ctx.render();
 }
@@ -169,6 +170,7 @@ export function clearDone(ctx, bake, stepId) {
   const d = { ...(bake.done || {}) };
   METHODS[method].slice(IDXS[method][stepId]).forEach((s) => delete d[s.id]);
   bake.done = d;
+  bake.updatedAt = Date.now();
   ctx.persist();
   ctx.render();
 }

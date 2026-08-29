@@ -6,14 +6,16 @@ import { fmt, dayLabel, ago, ratioOf, MIN } from "../game/schedule.js";
 import { FLOUR_CHIPS, STARTER_LOCATIONS } from "../game/seed-data.js";
 import { starterRise } from "./starter-vm.js";
 import { startersFor } from "../game/ownership.js";
+import { newId } from "../game/ids.js";
 
 function addStarter(ctx, acc) {
   const { state } = ctx;
   const store = state.store;
   const n = startersFor(store, acc.id).length + 1;
-  const id = "new-" + Date.now();
-  store.starters.push({ id, name: "Starter " + n, age: "New · name it and log the first feed", where: "Counter", peakMin: 420, ownerId: acc.id, feeds: [] });
-  acc.starterId = id; state.pickerOpen = false; state.feedOpen = true;
+  const id = newId("s");
+  store.starters.push({ id, name: "Starter " + n, age: "New · name it and log the first feed", where: "Counter", peakMin: 420, ownerId: acc.id, feeds: [], updatedAt: Date.now(), deleted: false });
+  acc.starterId = id; acc.updatedAt = Date.now();
+  state.pickerOpen = false; state.feedOpen = true;
   ctx.persist(); ctx.render();
 }
 
@@ -56,7 +58,7 @@ export function renderStarter(ctx) {
     myStarters.forEach((s) => {
       menu.appendChild(el("div", {
         style: `display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid #EFE8DA;cursor:pointer;background:${s.id === starter.id ? "#EFE7D8" : "#FBF8F1"}`,
-        onClick: () => { acc.starterId = s.id; state.pickerOpen = false; state.feedOpen = false; ctx.persist(); ctx.render(); },
+        onClick: () => { acc.starterId = s.id; acc.updatedAt = Date.now(); state.pickerOpen = false; state.feedOpen = false; ctx.persist(); ctx.render(); },
       }, [
         el("div", { style: "flex:1;min-width:0" }, [
           el("div", { style: "font:600 13.5px/1.3 var(--ui);color:#221F19", text: s.name }),
@@ -125,7 +127,7 @@ export function renderStarter(ctx) {
         menu.appendChild(el("div", {
           style: `padding:13px 14px;border-bottom:1px solid #EFE8DA;cursor:pointer;font:500 13.5px/1.3 var(--ui);color:#221F19;background:${(starter.where || "Counter") === name ? "#EFE7D8" : "#FBF8F1"}`,
           text: name,
-          onClick: () => { starter.where = name; state.locOpen = false; ctx.persist(); ctx.render(); },
+          onClick: () => { starter.where = name; starter.updatedAt = Date.now(); state.locOpen = false; ctx.persist(); ctx.render(); },
         }));
       });
       row.appendChild(menu);
@@ -168,9 +170,10 @@ export function renderStarter(ctx) {
         el("div", { style: "display:flex;gap:9px;margin-top:13px" }, [
           el("div", { style: "flex:1;background:#F0E9DC;color:#5C5447;border-radius:11px;padding:11px 0;text-align:center;font:600 13.5px/1 var(--ui);cursor:pointer", text: "Keep it", onClick: () => { state.deleteArm = false; ctx.render(); } }),
           el("div", { style: "flex:1;background:#B03A2B;color:#FFF;border-radius:11px;padding:11px 0;text-align:center;font:700 13.5px/1 var(--ui);cursor:pointer", text: "Delete", onClick: () => {
-            store.starters = store.starters.filter((x) => x.id !== starter.id);
+            store.starters.forEach((x) => { if (x.id === starter.id) { x.deleted = true; x.updatedAt = Date.now(); } });
             const remaining = startersFor(store, acc.id);
             acc.starterId = remaining[0] ? remaining[0].id : null;
+            acc.updatedAt = Date.now();
             state.deleteArm = false; state.pickerOpen = false; state.feedOpen = false;
             ctx.persist(); ctx.render();
           } }),
@@ -233,6 +236,7 @@ function feedForm(ctx, starter) {
     html: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6l4.4 4.4L19 7.4"></path></svg>',
     onClick: () => {
       starter.feeds = [{ at: Date.now(), s: form.s, f: form.f, w: form.w, flour: form.flour, peak: "—" }, ...starter.feeds];
+      starter.updatedAt = Date.now();
       state.feedOpen = false;
       ctx.persist(); ctx.render();
     },

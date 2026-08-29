@@ -4,7 +4,8 @@
 
 import { createWorkerApi } from "./api.js";
 import { createJsonStorage, LOCAL_KEYS, normalizeStore, defaultStore } from "./storage.js";
-import { createSyncer, randomSyncCode } from "./sync.js";
+import { createSyncer } from "./sync.js";
+import { mergeStores } from "./game/merge.js";
 import { el, TAB_DEFS, ICONS, isTabletViewport } from "./screens/shared-ui.js";
 
 import { renderWelcome } from "./screens/welcome.js";
@@ -17,8 +18,6 @@ import { renderTablet } from "./screens/tablet.js";
 
 const jsonStorage = createJsonStorage(localStorage);
 const workerApi = createWorkerApi({ baseUrl: window.WORKER_URL || "", appKey: window.APP_KEY || "" });
-
-let syncCode = jsonStorage.read(LOCAL_KEYS.syncCode, "");
 
 const state = {
   store: normalizeStore(jsonStorage.read(LOCAL_KEYS.store, null)),
@@ -64,16 +63,34 @@ function persist() {
   state.store.updatedAt = Date.now();
   jsonStorage.write(LOCAL_KEYS.store, state.store);
   jsonStorage.write(LOCAL_KEYS.currentAccount, state.accountIdx);
-  if (syncCode) syncer.schedulePush(state.store);
+  syncer.scheduleSync(2500);
+}
+
+// After a merge, a background sync can pull in a deletion of whatever the
+// user currently has open (a recipe someone else deleted, a starter that no
+// longer exists) — bounce those back to a safe state instead of leaving a
+// dead detail screen on screen.
+function revalidateOpenReferences() {
+  const store = state.store;
+  if (state.openRecipeId && !store.recipes.some((r) => r.id === state.openRecipeId && !r.deleted)) {
+    state.openRecipeId = null;
+    state.editing = false;
+  }
+  store.accounts.forEach((acc) => {
+    if (acc.starterId && !store.starters.some((s) => s.id === acc.starterId && !s.deleted && s.ownerId === acc.id)) {
+      const remaining = store.starters.filter((s) => s.ownerId === acc.id && !s.deleted);
+      acc.starterId = remaining[0] ? remaining[0].id : null;
+    }
+  });
 }
 
 const syncer = createSyncer({
   api: workerApi,
-  getSyncCode: () => syncCode,
-  onRemoteStore: (remote) => {
-    if (!remote || !remote.updatedAt) return;
-    if (remote.updatedAt <= (state.store.updatedAt || 0)) return;
-    state.store = normalizeStore(remote);
+  getLocalStore: () => state.store,
+  onMergedStore: (remote) => {
+    state.store = mergeStores(state.store, remote);
+    jsonStorage.write(LOCAL_KEYS.store, state.store);
+    revalidateOpenReferences();
     render();
   },
 });
@@ -155,13 +172,11 @@ setInterval(() => {
   if (state.screen !== "welcome") render();
 }, 15000);
 
-if (!syncCode) {
-  // No code yet: this device is local-only until the user opts into sync
-  // from the welcome screen ("Sync across devices").
-}
-syncer.pullNow();
-setInterval(() => syncer.pullNow(), 60000);
-
-window.__levain = { state, persist, newSyncCode: () => { syncCode = randomSyncCode(); jsonStorage.write(LOCAL_KEYS.syncCode, syncCode); syncer.schedulePush(state.store); return syncCode; }, joinSyncCode: (code) => { syncCode = code.trim(); jsonStorage.write(LOCAL_KEYS.syncCode, syncCode); syncer.pullNow(); } };
-
+// Render immediately from the local cache (offline-friendly instant paint),
+// then sync in the background — every device syncs to the one household
+// store automatically, no opt-in step.
 render();
+syncer.scheduleSync(0);
+setInterval(() => syncer.scheduleSync(0), 60000);
+
+window.__levain = { state, persist };
