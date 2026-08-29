@@ -1,12 +1,20 @@
 // Levain — Welcome / baker switcher. See docs/design-reference.html isWelcome block.
 
-import { el } from "./shared-ui.js";
+import { el, iconEl, isTabletViewport } from "./shared-ui.js";
 import { TINTS, seedRecipesFor } from "../game/seed-data.js";
 import { newId } from "../game/ids.js";
+import { bakesFor } from "../game/ownership.js";
 
 export function renderWelcome(ctx) {
   const { state } = ctx;
   const accounts = state.store.accounts;
+  const maxShown = isTabletViewport() ? 4 : 3;
+  const showArrows = accounts.length > maxShown;
+  const off = ((state.wOff || 0) % accounts.length + accounts.length) % accounts.length;
+  const shown = Array.from({ length: Math.min(maxShown, accounts.length) }, (_, k) => {
+    const i = (off + k) % accounts.length;
+    return { account: accounts[i], index: i };
+  });
 
   const wrap = el("div", {
     style: "position:fixed;inset:0;z-index:5;background:radial-gradient(120% 68% at 50% 20%,#F7F2E9 0%,#F2EDE3 52%,#EEE8DC 100%);display:flex;flex-direction:column;align-items:center;padding:0 30px 44px;box-sizing:border-box;overflow-y:auto",
@@ -28,8 +36,16 @@ export function renderWelcome(ctx) {
     text: "Each baker keeps their own bakes, starter and recipes — everyone starts from the same recipe set.",
   }));
 
-  const row = el("div", { style: "flex:none;display:flex;gap:6px;margin-top:32px;align-items:flex-start;flex-wrap:wrap;justify-content:center" });
-  accounts.forEach((a, i) => {
+  const row = el("div", { style: "flex:none;display:flex;gap:6px;margin-top:32px;align-items:flex-start;justify-content:center" });
+
+  if (showArrows) {
+    row.appendChild(el("div", {
+      style: "width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;color:#C2B7A2;cursor:pointer;user-select:none;align-self:center;margin-top:-22px",
+      onClick: () => { state.wOff = off - 1; ctx.render(); },
+    }, [iconEl("chevLeft")]));
+  }
+
+  shown.forEach(({ account: a, index: i }) => {
     const card = el("div", {
       style: "display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;user-select:none;width:86px",
       onClick: () => { state.accountIdx = i; state.screen = "app"; state.tab = "now"; ctx.persist(); ctx.render(); },
@@ -38,8 +54,21 @@ export function renderWelcome(ctx) {
     avatar.appendChild(el("div", { style: "font:600 22px/1 var(--num);color:#4A4438", text: a.initial }));
     card.appendChild(avatar);
     card.appendChild(el("div", { style: "font:600 13.5px/1 var(--ui);color:#221F19;white-space:nowrap", text: a.name }));
+    const myBakes = bakesFor(state.store, a.id);
+    card.appendChild(el("div", {
+      style: "font:400 11.5px/1.35 var(--ui);color:#A79C8A;text-align:center",
+      text: myBakes.length ? `${myBakes.length} bake${myBakes.length === 1 ? "" : "s"} going` : "Nothing rising",
+    }));
     row.appendChild(card);
   });
+
+  if (showArrows) {
+    row.appendChild(el("div", {
+      style: "width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;color:#C2B7A2;cursor:pointer;user-select:none;align-self:center;margin-top:-22px",
+      onClick: () => { state.wOff = off + 1; ctx.render(); },
+    }, [iconEl("chevRight")]));
+  }
+
   wrap.appendChild(row);
 
   const addBtn = el("div", {
