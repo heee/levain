@@ -23,5 +23,12 @@ export function createWorkerApi({ baseUrl, appKey }) {
       const data = await call("/sync", { method: "POST", body: JSON.stringify({ store }) });
       return data.store || null;
     },
+
+    // Fetches a single shared recipe/log entry by id — no account context,
+    // used by the standalone shared-link view (see app.js `renderSharedView`).
+    async getPublic(kind, id) {
+      const data = await call(`/public/${kind}/${encodeURIComponent(id)}`, { method: "GET" });
+      return data[kind] || null;
+    },
   };
 }

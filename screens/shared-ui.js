@@ -46,10 +46,85 @@ export const ICONS = {
   trash: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15"></path><path d="M9.5 7V4.8h5V7"></path><path d="M6.5 7l.9 12.2h9.2L17.5 7"></path><path d="M10.5 10.5v6"></path><path d="M13.5 10.5v6"></path></svg>',
   close: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path></svg>',
   alexa: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"></circle><path d="M6.9 8.6a6.6 6.6 0 0 0 0 6.8"></path><path d="M17.1 8.6a6.6 6.6 0 0 1 0 6.8"></path><path d="M4.2 5.6a10.6 10.6 0 0 0 0 12.8"></path><path d="M19.8 5.6a10.6 10.6 0 0 1 0 12.8"></path></svg>',
+  drop: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5c3 3.9 6 8 6 11.2a6 6 0 1 1-12 0c0-3.2 3-7.3 6-11.2z"></path></svg>',
+  download: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11.5"></path><path d="M7 11.5l5 5 5-5"></path><path d="M5 19.5h14"></path></svg>',
 };
 
 export function iconEl(name, extraStyle = "") {
   return el("div", { style: `display:flex;align-items:center;justify-content:center;${extraStyle}`, html: ICONS[name] || "" });
+}
+
+// Opens the native file picker (image capture/library on mobile) and
+// resolves with the chosen file, or rejects if the user cancels.
+function pickImageFile() {
+  return new Promise((resolve, reject) => {
+    const input = el("input", { type: "file", accept: "image/*", style: "display:none" });
+    input.addEventListener("change", () => {
+      const file = input.files && input.files[0];
+      document.body.removeChild(input);
+      if (file) resolve(file); else reject(new Error("no file chosen"));
+    }, { once: true });
+    document.body.appendChild(input);
+    input.click();
+  });
+}
+
+// Downscales/recompresses an image file client-side before it ever touches
+// the store — photos are the one thing in this app big enough to bloat the
+// synced JSON blob, so every upload gets capped to maxDim on its long edge
+// and re-encoded as JPEG at `quality` before being kept as a data URI.
+function resizeImageFile(file, maxDim = 900, quality = 0.65) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width >= height) { height = Math.round((height * maxDim) / width); width = maxDim; }
+          else { width = Math.round((width * maxDim) / height); height = maxDim; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Picks an image and returns a resized data URI ready to store on a record.
+// Swallows cancellation/errors — callers just get nothing back and re-render.
+export async function pickAndResizePhoto(maxDim, quality) {
+  const file = await pickImageFile();
+  return resizeImageFile(file, maxDim, quality);
+}
+
+// A tappable photo well: shows the stored photo if there is one, otherwise
+// the striped placeholder + prompt text; tapping always opens the picker.
+// `onPicked(dataUrl)` is responsible for persisting + re-rendering.
+export function photoSlot({ height, photo, placeholder, onPicked, maxDim, quality }) {
+  const box = el("div", { style: `height:${height}px;background:#EFE7D8;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:pointer` });
+  if (photo) {
+    box.appendChild(el("img", { src: photo, alt: "", style: "position:absolute;inset:0;width:100%;height:100%;object-fit:cover" }));
+  } else {
+    box.appendChild(el("div", { style: "position:absolute;inset:0;background:repeating-linear-gradient(135deg,#E9DFC9 0 9px,#EFE7D8 9px 18px);opacity:.75" }));
+    box.appendChild(el("div", { style: "position:relative;font:400 11px/1.5 var(--num);color:#9A8F79;letter-spacing:.06em;text-align:center", html: placeholder }));
+  }
+  box.addEventListener("click", async () => {
+    try {
+      const dataUrl = await pickAndResizePhoto(maxDim, quality);
+      onPicked(dataUrl);
+    } catch (e) {
+      // user cancelled the picker — nothing to do
+    }
+  });
+  return box;
 }
 
 export const TAB_DEFS = [

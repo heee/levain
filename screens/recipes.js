@@ -77,12 +77,6 @@ export function renderRecipes(ctx) {
   });
   wrap.appendChild(list);
 
-  wrap.appendChild(el("div", { style: "font:600 11px/1 var(--num);letter-spacing:.14em;text-transform:uppercase;color:#A79C8A;margin:26px 0 11px", text: "Methods" }));
-  wrap.appendChild(el("div", {
-    style: "font:400 13px/1.6 var(--ui);color:#6E6558",
-    text: "Five method templates: no-knead sourdough, kneaded and enriched, bagels, pizza, discard. Each recipe points at one, and every step knows how many minutes of it are hands-on. Editing a recipe updates it everywhere; each finished bake keeps its own copy of what was actually used.",
-  }));
-
   return wrap;
 }
 
@@ -572,7 +566,8 @@ function shareRecipe(ctx, recipe) {
   const sc = state.scale || 1;
   const lines = recipe.rows.map((r) => "· " + r[0] + " — " + Math.round(r[1] * sc) + "g");
   const steps = stepsForBake({ recipe: recipe.id, done: {} }, state.store).map((s, i) => (i + 1) + ". " + s.label + " (" + human(s.dur) + ")");
-  const text = recipe.name + "\n" + recipe.sub + "\n\n" + lines.join("\n") + "\n\n" + steps.join("\n") + "\n\nSent from Levain.";
+  const link = location.origin + location.pathname + "?view=recipe&id=" + encodeURIComponent(recipe.id);
+  const text = recipe.name + "\n" + recipe.sub + "\n\n" + lines.join("\n") + "\n\n" + steps.join("\n") + "\n\nView & import: " + link;
   if (navigator.share) { try { navigator.share({ title: recipe.name, text }); } catch (e) {} }
   state.shareText = text;
   state.shareCopied = false;

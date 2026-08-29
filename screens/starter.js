@@ -1,7 +1,7 @@
 // Levain — Starter tab: feed logging, rise prediction, location, multiple
 // starters. See docs/design-reference.html isStarter block.
 
-import { el } from "./shared-ui.js";
+import { el, iconEl, photoSlot } from "./shared-ui.js";
 import { fmt, dayLabel, ago, ratioOf, MIN } from "../game/schedule.js";
 import { FLOUR_CHIPS, STARTER_LOCATIONS } from "../game/seed-data.js";
 import { starterRise } from "./starter-vm.js";
@@ -79,10 +79,12 @@ export function renderStarter(ctx) {
   wrap.appendChild(headRow);
 
   const card = el("div", { style: "background:#FBF8F1;border-radius:20px;border:1px solid #EAE2D2;overflow:hidden" });
-  const photo = el("div", { style: "height:150px;background:#EFE7D8;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden" });
-  photo.appendChild(el("div", { style: "position:absolute;inset:0;background:repeating-linear-gradient(135deg,#E9DFC9 0 9px,#EFE7D8 9px 18px);opacity:.75" }));
-  photo.appendChild(el("div", { style: "position:relative;font:400 11px/1.5 var(--num);color:#9A8F79;letter-spacing:.06em;text-align:center", html: "photo of the jar<br>tap to add" }));
-  card.appendChild(photo);
+  card.appendChild(photoSlot({
+    height: 150,
+    photo: starter.photo,
+    placeholder: "photo of the jar<br>tap to add",
+    onPicked: (dataUrl) => { starter.photo = dataUrl; starter.updatedAt = Date.now(); ctx.persist(); ctx.render(); },
+  }));
 
   const body = el("div", { style: "padding:16px" });
   const stats = el("div", { style: "display:flex;align-items:center;gap:12px;margin-bottom:14px" });
@@ -108,7 +110,14 @@ export function renderStarter(ctx) {
 
   if (!state.feedOpen) {
     const row = el("div", { style: "margin-top:14px;display:flex;gap:9px;position:relative" });
-    row.appendChild(el("div", { class: "btn-primary", style: "flex:1", text: "Log a feed", onClick: () => { state.feedOpen = true; ctx.render(); } }));
+    row.appendChild(el("div", {
+      class: "btn-primary",
+      style: "flex:none;padding:15px 20px;display:flex;align-items:center;justify-content:center;gap:8px",
+      onClick: () => { state.feedOpen = true; ctx.render(); },
+    }, [
+      iconEl("drop", "color:#FFF"),
+      el("span", { style: "font:700 15px/1 var(--ui)", text: "Feed" }),
+    ]));
     const locBtn = el("div", {
       style: "flex:1;background:#FBF8F1;border:1.5px solid #DDD2BC;border-radius:14px;padding:0 13px;display:flex;align-items:center;gap:8px;cursor:pointer;box-sizing:border-box",
       onClick: () => { state.locOpen = !state.locOpen; ctx.render(); },

@@ -15,6 +15,9 @@ import { renderRecipes } from "./screens/recipes.js";
 import { renderStarter } from "./screens/starter.js";
 import { renderLog } from "./screens/log.js";
 import { renderTablet } from "./screens/tablet.js";
+import { renderSharedLoading, renderSharedError, renderSharedRecipe, renderSharedLog } from "./screens/shared-view.js";
+import { recipesFor } from "./game/ownership.js";
+import { newId } from "./game/ids.js";
 
 const jsonStorage = createJsonStorage(localStorage);
 const workerApi = createWorkerApi({ baseUrl: window.WORKER_URL || "", appKey: window.APP_KEY || "" });
@@ -53,6 +56,7 @@ const state = {
   wOff: 0,
   shareText: null,
   shareCopied: false,
+  shareTarget: null,
   spokenFor: null,
   spokenPhrase: "",
   nr: { name: "", sub: "", method: "sourdough", ing: [{ name: "", g: "" }, { name: "", g: "" }], steps: [] },
@@ -115,6 +119,8 @@ function go(tab) {
     state.editing = false;
     state.newBakeOpen = false;
     state.pickerOpen = false;
+    state.shareText = null;
+    state.shareTarget = null;
     root.scrollTop = 0;
     render();
   };
@@ -166,30 +172,81 @@ function render() {
   updateHeaderShadow();
 }
 
-window.addEventListener("resize", () => {
-  // The welcome screen's layout doesn't depend on viewport width (the
-  // phone/tablet split only applies once inside the app), so skip the
-  // rebuild there. iOS Safari fires a resize event when its address bar
-  // auto-collapses shortly after load, and rebuilding the whole screen right
-  // then is what made the welcome screen visibly jump.
-  if (state.screen !== "welcome") render();
-});
+// A shared-link URL (?view=recipe|log&id=...) bypasses the whole app/account
+// flow: no tab bar, no sync loop, just that one record fetched straight from
+// the worker's public read endpoint. See screens/shared-view.js.
+const sharedParams = new URLSearchParams(location.search);
+const sharedKind = sharedParams.get("view");
+const sharedId = sharedParams.get("id");
+const isSharedView = (sharedKind === "recipe" || sharedKind === "log") && !!sharedId;
 
-setInterval(() => {
-  state.now = Date.now();
-  // Cheap re-render on a slow clock tick — screens are inexpensive to
-  // rebuild (no virtual-DOM diffing needed at this scale) and this is what
-  // keeps "in 12m" style labels honest without any per-screen timers.
-  // Skip it on the welcome screen: nothing there depends on `now`, and
-  // wiping/rebuilding the DOM every 15s made the loaf image visibly flicker.
-  if (state.screen !== "welcome") render();
-}, 15000);
+async function mountSharedView() {
+  tabBar.style.display = "none";
+  root.innerHTML = "";
+  root.appendChild(renderSharedLoading());
+  let record;
+  try {
+    record = await workerApi.getPublic(sharedKind, sharedId);
+  } catch (e) {
+    record = null;
+  }
+  root.innerHTML = "";
+  if (!record) {
+    root.appendChild(renderSharedError("That link doesn't point at anything anymore."));
+    return;
+  }
+  if (sharedKind === "log") {
+    root.appendChild(renderSharedLog(record));
+    return;
+  }
+  const acc = state.store.accounts[state.accountIdx] || state.store.accounts[0];
+  const alreadyHave = () => recipesFor(state.store, acc.id).some((r) => r.name.trim().toLowerCase() === record.name.trim().toLowerCase());
+  const paint = () => {
+    root.innerHTML = "";
+    root.appendChild(renderSharedRecipe(record, {
+      alreadyImported: alreadyHave(),
+      onImport: () => {
+        state.store.recipes.push({
+          id: newId("r"), name: record.name, sub: record.sub, method: record.method,
+          rows: record.rows, stepOverrides: record.stepOverrides, ownerId: acc.id,
+          updatedAt: Date.now(), deleted: false,
+        });
+        persist();
+        paint();
+      },
+    }));
+  };
+  paint();
+}
 
-// Render immediately from the local cache (offline-friendly instant paint),
-// then sync in the background — every device syncs to the one household
-// store automatically, no opt-in step.
-render();
-syncer.scheduleSync(0);
-setInterval(() => syncer.scheduleSync(0), 60000);
+if (isSharedView) {
+  mountSharedView();
+} else {
+  window.addEventListener("resize", () => {
+    // The welcome screen's layout doesn't depend on viewport width (the
+    // phone/tablet split only applies once inside the app), so skip the
+    // rebuild there. iOS Safari fires a resize event when its address bar
+    // auto-collapses shortly after load, and rebuilding the whole screen right
+    // then is what made the welcome screen visibly jump.
+    if (state.screen !== "welcome") render();
+  });
+
+  setInterval(() => {
+    state.now = Date.now();
+    // Cheap re-render on a slow clock tick — screens are inexpensive to
+    // rebuild (no virtual-DOM diffing needed at this scale) and this is what
+    // keeps "in 12m" style labels honest without any per-screen timers.
+    // Skip it on the welcome screen: nothing there depends on `now`, and
+    // wiping/rebuilding the DOM every 15s made the loaf image visibly flicker.
+    if (state.screen !== "welcome") render();
+  }, 15000);
+
+  // Render immediately from the local cache (offline-friendly instant paint),
+  // then sync in the background — every device syncs to the one household
+  // store automatically, no opt-in step.
+  render();
+  syncer.scheduleSync(0);
+  setInterval(() => syncer.scheduleSync(0), 60000);
+}
 
 window.__levain = { state, persist };

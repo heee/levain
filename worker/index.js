@@ -75,6 +75,19 @@ export default {
       }
     }
 
+    // GET /public/recipe/:id or /public/log/:id — unauthenticated single-
+    // record read, used by shared links (see screens/recipes.js / log.js
+    // shareRecipe/shareLogEntry) so anyone with the link can view that one
+    // recipe/bake without syncing or holding the whole household store.
+    const publicMatch = url.pathname.match(/^\/public\/(recipe|log)\/([A-Za-z0-9_-]+)$/);
+    if (publicMatch && request.method === "GET") {
+      const [, kind, id] = publicMatch;
+      const table = kind === "recipe" ? "recipes" : "log_entries";
+      const row = await env.DB.prepare(`SELECT id, data, deleted FROM ${table} WHERE id = ?`).bind(id).first();
+      if (!row || row.deleted) return json({ error: "not found" }, 404, cors);
+      return json({ [kind]: { id: row.id, ...JSON.parse(row.data) } }, 200, cors);
+    }
+
     return json({ error: "not found" }, 404, cors);
   },
 };
