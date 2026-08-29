@@ -111,7 +111,9 @@ button { border: none; background: none; cursor: pointer; padding: 0; }
   border: 1px solid #E7DECC;
   border-radius: 12px;
   padding: 14px 15px;
-  font: 400 15px/1 var(--ui);
+  /* 16px, not the design's 15px: iOS Safari zooms the whole page in when a
+     focused input's effective font-size is under 16px. */
+  font: 400 16px/1 var(--ui);
   color: #221F19;
   outline: none;
 }

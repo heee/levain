@@ -107,7 +107,7 @@ function recipeBuilder(ctx) {
   nameInput.addEventListener("input", (e) => { nr.name = e.target.value; });
   wrap.appendChild(nameInput);
 
-  const subInput = el("input", { class: "field", placeholder: "One line about it", style: "margin-top:9px;padding:13px 15px;font-size:13.5px", value: nr.sub });
+  const subInput = el("input", { class: "field", placeholder: "One line about it", style: "margin-top:9px;padding:13px 15px;font-size:16px", value: nr.sub });
   subInput.addEventListener("input", (e) => { nr.sub = e.target.value; });
   wrap.appendChild(subInput);
 
@@ -126,9 +126,9 @@ function recipeBuilder(ctx) {
   const ingBox = el("div", { style: "background:#FBF8F1;border:1px solid #EAE2D2;border-radius:16px;overflow:hidden" });
   nr.ing.forEach((row, i) => {
     const r = el("div", { style: "display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid #EFE8DA" });
-    const nameI = el("input", { placeholder: "Flour, water, salt…", style: "flex:1;min-width:0;background:transparent;border:none;font:400 14.5px/1.3 var(--ui);color:#3A3529;outline:none", value: row.name });
+    const nameI = el("input", { placeholder: "Flour, water, salt…", style: "flex:1;min-width:0;background:transparent;border:none;font:400 16px/1.3 var(--ui);color:#3A3529;outline:none", value: row.name });
     nameI.addEventListener("input", (e) => { row.name = e.target.value; });
-    const gI = el("input", { placeholder: "g", style: "width:60px;flex:none;background:#F2EDE3;border:1px solid #E7DECC;border-radius:9px;padding:8px;font:500 14px/1 var(--num);color:#221F19;text-align:right;outline:none", value: row.g });
+    const gI = el("input", { placeholder: "g", style: "width:60px;flex:none;background:#F2EDE3;border:1px solid #E7DECC;border-radius:9px;padding:6px;font:500 16px/1 var(--num);color:#221F19;text-align:right;outline:none", value: row.g });
     gI.addEventListener("input", (e) => { row.g = e.target.value; });
     r.appendChild(nameI); r.appendChild(gI);
     r.appendChild(el("div", {
@@ -147,7 +147,7 @@ function recipeBuilder(ctx) {
   nr.steps.forEach((s, i) => {
     const row = el("div", { style: "padding:11px 12px;border-top:1px solid #EFE8DA" });
     const line1 = el("div", { style: "display:flex;align-items:center;gap:8px" });
-    const labelI = el("input", { placeholder: "What you do", style: "flex:1;min-width:0;background:transparent;border:none;font:500 14.5px/1.3 var(--ui);color:#3A3529;outline:none", value: s.label });
+    const labelI = el("input", { placeholder: "What you do", style: "flex:1;min-width:0;background:transparent;border:none;font:500 16px/1.3 var(--ui);color:#3A3529;outline:none", value: s.label });
     labelI.addEventListener("input", (e) => { s.label = e.target.value; });
     line1.appendChild(labelI);
     line1.appendChild(el("div", {
@@ -157,11 +157,11 @@ function recipeBuilder(ctx) {
     }));
     row.appendChild(line1);
     const line2 = el("div", { style: "display:flex;align-items:center;gap:8px;margin-top:8px" });
-    const durI = el("input", { placeholder: "30", style: "width:56px;flex:none;background:#F2EDE3;border:1px solid #E7DECC;border-radius:9px;padding:7px;font:500 13.5px/1 var(--num);color:#221F19;text-align:right;outline:none", value: s.dur });
+    const durI = el("input", { placeholder: "30", style: "width:56px;flex:none;background:#F2EDE3;border:1px solid #E7DECC;border-radius:9px;padding:5px;font:500 16px/1 var(--num);color:#221F19;text-align:right;outline:none", value: s.dur });
     durI.addEventListener("input", (e) => { s.dur = e.target.value; });
     line2.appendChild(durI);
     line2.appendChild(el("div", { style: "font:400 12px/1 var(--ui);color:#8A8171", text: "min long" }));
-    const actI = el("input", { placeholder: "5", style: "width:56px;flex:none;background:#F2EDE3;border:1px solid #E7DECC;border-radius:9px;padding:7px;font:500 13.5px/1 var(--num);color:#221F19;text-align:right;outline:none;margin-left:6px", value: s.act });
+    const actI = el("input", { placeholder: "5", style: "width:56px;flex:none;background:#F2EDE3;border:1px solid #E7DECC;border-radius:9px;padding:5px;font:500 16px/1 var(--num);color:#221F19;text-align:right;outline:none;margin-left:6px", value: s.act });
     actI.addEventListener("input", (e) => { s.act = e.target.value; });
     line2.appendChild(actI);
     line2.appendChild(el("div", { style: "font:400 12px/1 var(--ui);color:#8A8171", text: "min hands-on" }));
@@ -312,21 +312,26 @@ function ingredientsCard(ctx, recipe) {
   box.appendChild(head);
 
   recipe.rows.forEach((row, ri) => {
-    const r = el("div", { style: "display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid #EFE8DA" });
     if (!editing) {
+      const r = el("div", { style: "display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid #EFE8DA" });
       r.appendChild(el("div", { style: "flex:1;font:400 14.5px/1.3 var(--ui);color:#3A3529", text: row[0] }));
       r.appendChild(el("div", { style: "font:400 11.5px/1 var(--num);color:#B0A692;min-width:44px;text-align:right", text: row[2] }));
-    } else {
-      const nameI = el("input", { value: row[0], style: "flex:1;min-width:0;font:400 14px/1.3 var(--ui);color:#221F19;background:#F5F0E5;border:1px solid #E4DAC6;border-radius:9px;padding:8px 10px;outline:none" });
-      nameI.addEventListener("input", (e) => { row[0] = e.target.value; });
-      r.appendChild(nameI);
-      r.appendChild(el("div", { style: "width:26px;height:26px;border-radius:8px;background:#E7DECC;display:flex;align-items:center;justify-content:center;font:500 15px/1 var(--ui);color:#6E6558;cursor:pointer;flex:none", text: "−", onClick: () => { row[1] = Math.max(0, row[1] - 5); ctx.render(); } }));
+      box.appendChild(r);
+      return;
     }
-    r.appendChild(el("div", { style: "font:500 15px/1 var(--num);color:#221F19;min-width:62px;text-align:right", text: Math.round(row[1] * sc) + " g" }));
-    if (editing) {
-      r.appendChild(el("div", { style: "width:26px;height:26px;border-radius:8px;background:#E7DECC;display:flex;align-items:center;justify-content:center;font:500 15px/1 var(--ui);color:#6E6558;cursor:pointer;flex:none", text: "+", onClick: () => { row[1] = row[1] + 5; ctx.render(); } }));
-      r.appendChild(el("div", { style: "width:26px;height:26px;border-radius:8px;background:#F3E3DE;display:flex;align-items:center;justify-content:center;font:500 15px/1 var(--ui);color:#B03A2B;cursor:pointer;flex:none", text: "×", onClick: () => { recipe.rows.splice(ri, 1); ctx.render(); } }));
-    }
+    // 16px+ inputs (so iOS doesn't zoom on focus) don't fit next to the
+    // gram steppers on one line the way the smaller display-only text did,
+    // so editing gets its own name-on-top-of-controls layout instead.
+    const r = el("div", { style: "padding:12px 16px;border-top:1px solid #EFE8DA;display:flex;flex-direction:column;gap:8px" });
+    const nameI = el("input", { value: row[0], style: "width:100%;box-sizing:border-box;font:400 16px/1.3 var(--ui);color:#221F19;background:#F5F0E5;border:1px solid #E4DAC6;border-radius:9px;padding:8px 10px;outline:none" });
+    nameI.addEventListener("input", (e) => { row[0] = e.target.value; });
+    r.appendChild(nameI);
+    const controls = el("div", { style: "display:flex;align-items:center;gap:10px" });
+    controls.appendChild(el("div", { style: "width:26px;height:26px;border-radius:8px;background:#E7DECC;display:flex;align-items:center;justify-content:center;font:500 15px/1 var(--ui);color:#6E6558;cursor:pointer;flex:none", text: "−", onClick: () => { row[1] = Math.max(0, row[1] - 5); ctx.render(); } }));
+    controls.appendChild(el("div", { style: "flex:1;font:500 15px/1 var(--num);color:#221F19;text-align:right", text: Math.round(row[1] * sc) + " g" }));
+    controls.appendChild(el("div", { style: "width:26px;height:26px;border-radius:8px;background:#E7DECC;display:flex;align-items:center;justify-content:center;font:500 15px/1 var(--ui);color:#6E6558;cursor:pointer;flex:none", text: "+", onClick: () => { row[1] = row[1] + 5; ctx.render(); } }));
+    controls.appendChild(el("div", { style: "width:26px;height:26px;border-radius:8px;background:#F3E3DE;display:flex;align-items:center;justify-content:center;font:500 15px/1 var(--ui);color:#B03A2B;cursor:pointer;flex:none", text: "×", onClick: () => { recipe.rows.splice(ri, 1); ctx.render(); } }));
+    r.appendChild(controls);
     box.appendChild(r);
   });
 
@@ -523,18 +528,22 @@ function methodStepsCard(ctx, recipe) {
 
   const box = el("div", { style: "background:#FBF8F1;border-radius:18px;border:1px solid #EAE2D2;overflow:hidden" });
   steps.forEach((s, i) => {
-    const row = el("div", { style: "display:flex;gap:12px;padding:14px 16px;border-top:1px solid #EFE8DA" });
+    // Editing needs the label/hint inputs at a real (16px+, so iOS doesn't
+    // zoom on focus) font size, which no longer fits alongside the duration
+    // steppers on one line -- let the row wrap so those steppers drop to
+    // their own line under the inputs instead of clipping the text.
+    const row = el("div", { style: `display:flex;gap:12px;padding:14px 16px;border-top:1px solid #EFE8DA${editing ? ";flex-wrap:wrap" : ""}` });
     row.appendChild(el("div", { style: "width:20px;height:20px;border-radius:20px;background:#F0E9DC;color:#8A8171;display:flex;align-items:center;justify-content:center;font:500 11px/1 var(--num);flex:none;margin-top:1px", text: String(i + 1) }));
-    const body = el("div", { style: "flex:1;min-width:0" });
+    const body = el("div", { style: `flex:1;min-width:0${editing ? ";flex-basis:100%" : ""}` });
     if (!editing) {
       body.appendChild(el("div", { style: "font:500 14.5px/1.3 var(--ui);color:#221F19", text: s.label }));
       body.appendChild(el("div", { style: "font:400 12.5px/1.45 var(--ui);color:#8A8171;margin-top:4px", text: s.hint }));
       body.appendChild(el("div", { style: `font:400 11.5px/1.3 var(--ui);margin-top:6px;color:${s.act ? "#A65A2E" : "#A79C8A"}`, text: s.act ? s.act + " min hands-on" : "no hands-on time" }));
     } else {
-      const labelI = el("input", { value: s.label, style: "width:100%;box-sizing:border-box;font:500 14.5px/1.3 var(--ui);color:#221F19;background:#F5F0E5;border:1px solid #E4DAC6;border-radius:9px;padding:8px 10px;outline:none" });
+      const labelI = el("input", { value: s.label, style: "width:100%;box-sizing:border-box;font:500 16px/1.3 var(--ui);color:#221F19;background:#F5F0E5;border:1px solid #E4DAC6;border-radius:9px;padding:8px 10px;outline:none" });
       labelI.addEventListener("input", (e) => { setOverride(recipe, s.id, "label", e.target.value); });
       body.appendChild(labelI);
-      const hintI = el("input", { value: s.hint, style: "width:100%;box-sizing:border-box;font:400 12.5px/1.3 var(--ui);color:#5C5447;background:#F5F0E5;border:1px solid #E4DAC6;border-radius:9px;padding:7px 10px;outline:none;margin-top:6px" });
+      const hintI = el("input", { value: s.hint, style: "width:100%;box-sizing:border-box;font:400 16px/1.3 var(--ui);color:#5C5447;background:#F5F0E5;border:1px solid #E4DAC6;border-radius:9px;padding:7px 10px;outline:none;margin-top:6px" });
       hintI.addEventListener("input", (e) => { setOverride(recipe, s.id, "hint", e.target.value); });
       body.appendChild(hintI);
       const actRow = el("div", { style: "display:flex;align-items:center;gap:8px;margin-top:9px" });
@@ -546,7 +555,7 @@ function methodStepsCard(ctx, recipe) {
     }
     row.appendChild(body);
 
-    const right = el("div", { style: "display:flex;align-items:center;gap:9px;flex:none" });
+    const right = el("div", { style: `display:flex;align-items:center;gap:9px;flex:none${editing ? ";margin-left:32px" : ""}` });
     if (editing) right.appendChild(el("div", { style: "width:26px;height:26px;border-radius:8px;background:#E7DECC;display:flex;align-items:center;justify-content:center;font:500 15px/1 var(--ui);color:#6E6558;cursor:pointer", text: "−", onClick: () => { setOverride(recipe, s.id, "dur", Math.max(1, s.dur - 5)); ctx.render(); } }));
     const timeCol = el("div", { style: "min-width:60px;text-align:right" });
     timeCol.appendChild(el("div", { style: "font:500 13px/1 var(--num);color:#221F19;white-space:nowrap", text: projAt[i] != null ? fmt(projAt[i]) + dayTag(projAt[i], now) : "" }));
