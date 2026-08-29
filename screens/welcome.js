@@ -5,7 +5,31 @@ import { TINTS, seedRecipesFor } from "../game/seed-data.js";
 import { newId } from "../game/ids.js";
 import { bakesFor } from "../game/ownership.js";
 
+// iOS Safari doesn't shrink the layout viewport for the keyboard, so a
+// `position:fixed;bottom:0` sheet stays pinned to the bottom of the *full*
+// page — right behind the keyboard — instead of riding above it. The
+// visualViewport API reports the actually-visible area, so we use it to
+// push the sheet up by however much the keyboard is covering. Armed once
+// (module-level guard) rather than per-render, since app.js rebuilds the
+// whole screen from scratch on every render and a per-render listener would
+// stack up duplicates on the shared window.visualViewport.
+let keyboardSyncArmed = false;
+function armKeyboardSync() {
+  if (keyboardSyncArmed || !window.visualViewport) return;
+  keyboardSyncArmed = true;
+  const sync = () => {
+    const sheet = document.getElementById("new-baker-sheet");
+    if (!sheet) return;
+    const vv = window.visualViewport;
+    const overlap = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    sheet.style.bottom = overlap + "px";
+  };
+  window.visualViewport.addEventListener("resize", sync);
+  window.visualViewport.addEventListener("scroll", sync);
+}
+
 export function renderWelcome(ctx) {
+  armKeyboardSync();
   const { state } = ctx;
   const accounts = state.store.accounts;
   const maxShown = isTabletViewport() ? 4 : 3;
@@ -80,6 +104,7 @@ export function renderWelcome(ctx) {
 
   if (state.newOpen) {
     const sheet = el("div", {
+      id: "new-baker-sheet",
       style: "position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:#FBF8F1;border-top:1px solid #E7DECC;border-radius:24px 24px 0 0;padding:22px 24px 34px;box-shadow:0 -14px 34px rgba(60,48,28,.12);z-index:20",
     });
     const head = el("div", { style: "display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px" });
