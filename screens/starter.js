@@ -41,10 +41,35 @@ export function renderStarter(ctx) {
   const { fed, lastFeed, pct } = starterRise(starter, now);
 
   const headRow = el("div", { class: "sticky-header", style: "display:flex;align-items:flex-start;gap:12px;padding-bottom:20px" });
-  headRow.appendChild(el("div", { style: "flex:1;min-width:0" }, [
-    el("h1", { style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0 0 6px;letter-spacing:-.01em", text: starter.name }),
-    el("div", { style: "font:400 13.5px/1.4 var(--ui);color:#8A8171", text: starter.age }),
-  ]));
+  const titleCol = el("div", { style: "flex:1;min-width:0" });
+  if (state.nameEdit) {
+    const commit = () => {
+      const v = nameInput.value.trim();
+      if (v) { starter.name = v; starter.updatedAt = Date.now(); ctx.persist(); }
+      state.nameEdit = false;
+      ctx.render();
+    };
+    const nameInput = el("input", {
+      class: "field",
+      value: starter.name,
+      style: "font:400 30px/1 'Source Serif 4',Georgia,serif;letter-spacing:-.01em;margin:0 0 6px;padding:2px 0;width:100%;box-sizing:border-box;border:none;border-bottom:1.5px solid #DDD2BC;background:transparent",
+    });
+    nameInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); commit(); }
+      else if (e.key === "Escape") { e.preventDefault(); state.nameEdit = false; ctx.render(); }
+    });
+    nameInput.addEventListener("blur", commit);
+    titleCol.appendChild(nameInput);
+    setTimeout(() => { nameInput.focus(); nameInput.select(); }, 0);
+  } else {
+    titleCol.appendChild(el("h1", {
+      style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0 0 6px;letter-spacing:-.01em;cursor:pointer",
+      text: starter.name,
+      onClick: () => { state.nameEdit = true; ctx.render(); },
+    }));
+  }
+  titleCol.appendChild(el("div", { style: "font:400 13.5px/1.4 var(--ui);color:#8A8171", text: starter.age }));
+  headRow.appendChild(titleCol);
   headRow.appendChild(el("div", {
     style: "display:flex;align-items:center;gap:7px;border:1.5px solid #DDD2BC;border-radius:11px;padding:8px 11px;color:#5C5447;cursor:pointer;flex:none",
     onClick: () => { state.pickerOpen = !state.pickerOpen; ctx.render(); },
