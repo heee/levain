@@ -99,7 +99,12 @@ const syncer = createSyncer({
     if (!state.store.accounts[state.accountIdx]) state.accountIdx = 0;
     jsonStorage.write(LOCAL_KEYS.store, state.store);
     revalidateOpenReferences();
-    render();
+    // Same reasoning as the welcome-screen skips below: a sync can land at
+    // any moment (including right after load, while the baker picker is still
+    // up), and wiping/rebuilding that screen's DOM mid-view is what made the
+    // loaf image flicker. The store itself is already updated, so whichever
+    // screen the user lands on next reads fresh data regardless.
+    if (state.screen !== "welcome") render();
   },
 });
 
