@@ -253,7 +253,7 @@ function feedForm(ctx, starter) {
     }));
   });
   flourBox.appendChild(chips);
-  const flourInput = el("input", { class: "field", placeholder: "Or type a blend — 80% AP, 20% spelt", style: "margin-top:8px;padding:10px 12px;font-size:13px", value: form.flour });
+  const flourInput = el("input", { class: "field", placeholder: "Or type a blend — 80% AP, 20% spelt", style: "margin-top:8px;padding:10px 12px;font-size:16px", value: form.flour });
   flourInput.addEventListener("input", (e) => { form.flour = e.target.value; });
   flourBox.appendChild(flourInput);
   box.appendChild(flourBox);
