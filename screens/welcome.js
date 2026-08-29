@@ -24,7 +24,7 @@ export function renderWelcome(ctx) {
   }));
   wrap.appendChild(el("div", {
     style: "flex:none;align-self:center;width:280px;font:400 14.5px/1.55 var(--ui);color:#6E6558;margin-top:12px;text-align:center",
-    text: "Each baker keeps their own name and avatar — bakes, recipes and starters stay shared for the household.",
+    text: "Each baker keeps their own bakes and starter. Recipes stay shared for the household.",
   }));
 
   const row = el("div", { style: "flex:none;display:flex;gap:6px;margin-top:32px;align-items:flex-start;flex-wrap:wrap;justify-content:center" });

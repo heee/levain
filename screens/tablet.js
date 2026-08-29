@@ -13,11 +13,13 @@ import { renderLog } from "./log.js";
 import { fmt, dayTag } from "../game/schedule.js";
 import { projForBake, recipeFor } from "../game/bakes.js";
 import { markDone, clearDone } from "./now.js";
+import { bakesFor, startersFor } from "../game/ownership.js";
 
 export function renderTablet(ctx) {
   const { state } = ctx;
   const store = state.store;
   const acc = store.accounts[state.accountIdx] || store.accounts[0];
+  const myBakes = bakesFor(store, acc.id);
 
   const shell = el("div", { style: "height:100dvh;display:flex;background:#F2EDE3" });
 
@@ -25,7 +27,7 @@ export function renderTablet(ctx) {
   const rail = el("div", { style: "width:220px;flex:none;background:#EDE6D8;border-right:1px solid #DFD5C2;display:flex;flex-direction:column;padding:22px 14px 18px" });
   rail.appendChild(el("div", { style: "padding:0 8px 22px" }, [
     el("div", { style: "font:400 22px/1 'Source Serif 4',Georgia,serif;letter-spacing:-.01em", text: "Levain" }),
-    el("div", { style: "font:400 11.5px/1.4 var(--ui);color:#A79C8A;margin-top:6px", text: `${store.bakes.length} bakes going · ${store.bakes.reduce((a, b) => a + b.loaves, 0)} loaves` }),
+    el("div", { style: "font:400 11.5px/1.4 var(--ui);color:#A79C8A;margin-top:6px", text: `${myBakes.length} bakes going · ${myBakes.reduce((a, b) => a + b.loaves, 0)} loaves` }),
   ]));
   const navList = el("div", { style: "display:flex;flex-direction:column;gap:3px" });
   [["now", "Now"], ["bakes", "Bakes"], ["recipes", "Recipes"], ["starter", "Starter"], ["log", "Log"]].forEach(([id, label]) => {
@@ -41,7 +43,8 @@ export function renderTablet(ctx) {
   rail.appendChild(navList);
   rail.appendChild(el("div", { style: "flex:1;min-height:20px" }));
 
-  const starter = store.starters.find((s) => s.id === store.starterId) || store.starters[0];
+  const myStarters = startersFor(store, acc.id);
+  const starter = myStarters.find((s) => s.id === acc.starterId) || myStarters[0];
   rail.appendChild(el("div", {
     style: "padding:12px;border-radius:13px;background:#E6DCC8;cursor:pointer",
     onClick: () => { state.tab = "starter"; ctx.render(); },
@@ -74,7 +77,7 @@ export function renderTablet(ctx) {
   const right = el("div", { style: "flex:1;min-width:0;display:flex;flex-direction:column;overflow-y:auto" });
   if (state.tab === "recipes" && state.openRecipeId) {
     right.appendChild(el("div", { style: "padding:26px;color:#8A8171;font:400 13px/1.6 var(--ui)", text: "Recipe detail is shown in the middle column on this width." }));
-  } else if (store.bakes.length) {
+  } else if (myBakes.length) {
     right.appendChild(dayColumn(ctx));
   } else {
     right.appendChild(el("div", { style: "padding:26px;color:#8A8171;font:400 13px/1.6 var(--ui)", text: "No bakes yet." }));
@@ -91,14 +94,21 @@ function renderBakesListOnly(ctx) {
   const { state } = ctx;
   const store = state.store;
   const now = state.now;
+  const acc = store.accounts[state.accountIdx] || store.accounts[0];
+  const myBakes = bakesFor(store, acc.id);
   const wrap = el("div", {});
   const head = el("div", { style: "display:flex;align-items:center;gap:10px;margin-bottom:16px" });
   head.appendChild(el("h1", { style: "flex:1;font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0;letter-spacing:-.01em", text: "Bakes" }));
-  head.appendChild(el("div", { style: "font:400 12.5px/1 var(--ui);color:#A79C8A;white-space:nowrap", text: `${store.bakes.length} bakes going` }));
+  head.appendChild(el("div", { style: "font:400 12.5px/1 var(--ui);color:#A79C8A;white-space:nowrap", text: `${myBakes.length} bakes going` }));
   wrap.appendChild(head);
 
+  if (!myBakes.length) {
+    wrap.appendChild(el("div", { style: "background:#FBF8F1;border-radius:20px;padding:24px;border:1px dashed #DDD2BC;text-align:center;color:#8A8171;font:400 14px/1.5 var(--ui)", text: "No bakes yet. Start one from a recipe." }));
+    return wrap;
+  }
+
   const list = el("div", { style: "display:flex;flex-direction:column;gap:9px" });
-  store.bakes.forEach((b, i) => {
+  myBakes.forEach((b, i) => {
     const pp = projForBake(b, store, now);
     const c = pp.find((x) => !x.isDone);
     const dn = pp.filter((x) => x.isDone).length;
@@ -125,8 +135,10 @@ function dayColumn(ctx) {
   const { state } = ctx;
   const store = state.store;
   const now = state.now;
-  state.idx = Math.min(state.idx, store.bakes.length - 1);
-  const bake = store.bakes[state.idx];
+  const acc = store.accounts[state.accountIdx] || store.accounts[0];
+  const myBakes = bakesFor(store, acc.id);
+  state.idx = Math.min(state.idx, myBakes.length - 1);
+  const bake = myBakes[state.idx];
 
   const wrap = el("div", { style: "flex:1;min-height:0;display:flex;flex-direction:column" });
 
@@ -143,8 +155,8 @@ function dayColumn(ctx) {
   const headRow = el("div", { style: "display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px" });
   headRow.appendChild(el("h2", { style: "font:400 21px/1.1 'Source Serif 4',Georgia,serif;margin:0;letter-spacing:-.01em", text: bake.name }));
   const nav = el("div", { style: "display:flex;align-items:center;gap:9px" });
-  nav.appendChild(el("div", { style: "width:28px;height:28px;border-radius:10px;background:#E9E1D0;display:flex;align-items:center;justify-content:center;font:400 16px/1 var(--ui);color:#6E6558;cursor:pointer", text: "‹", onClick: () => { state.idx = (state.idx - 1 + store.bakes.length) % store.bakes.length; ctx.render(); } }));
-  nav.appendChild(el("div", { style: "width:28px;height:28px;border-radius:10px;background:#E9E1D0;display:flex;align-items:center;justify-content:center;font:400 16px/1 var(--ui);color:#6E6558;cursor:pointer", text: "›", onClick: () => { state.idx = (state.idx + 1) % store.bakes.length; ctx.render(); } }));
+  nav.appendChild(el("div", { style: "width:28px;height:28px;border-radius:10px;background:#E9E1D0;display:flex;align-items:center;justify-content:center;font:400 16px/1 var(--ui);color:#6E6558;cursor:pointer", text: "‹", onClick: () => { state.idx = (state.idx - 1 + myBakes.length) % myBakes.length; ctx.render(); } }));
+  nav.appendChild(el("div", { style: "width:28px;height:28px;border-radius:10px;background:#E9E1D0;display:flex;align-items:center;justify-content:center;font:400 16px/1 var(--ui);color:#6E6558;cursor:pointer", text: "›", onClick: () => { state.idx = (state.idx + 1) % myBakes.length; ctx.render(); } }));
   headRow.appendChild(nav);
   detail.appendChild(headRow);
   detail.appendChild(el("div", { style: "font:400 12.5px/1.4 var(--ui);color:#8A8171;margin-bottom:16px", text: (bake.loaves > 1 ? bake.loaves + " loaves" : "One loaf") + " · out " + fmt(p[p.length - 1].at) + dayTag(p[p.length - 1].at, now) }));

@@ -5,15 +5,38 @@ import { el } from "./shared-ui.js";
 import { fmt, dayLabel, ago, ratioOf, MIN } from "../game/schedule.js";
 import { FLOUR_CHIPS, STARTER_LOCATIONS } from "../game/seed-data.js";
 import { starterRise } from "./starter-vm.js";
+import { startersFor } from "../game/ownership.js";
+
+function addStarter(ctx, acc) {
+  const { state } = ctx;
+  const store = state.store;
+  const n = startersFor(store, acc.id).length + 1;
+  const id = "new-" + Date.now();
+  store.starters.push({ id, name: "Starter " + n, age: "New · name it and log the first feed", where: "Counter", peakMin: 420, ownerId: acc.id, feeds: [] });
+  acc.starterId = id; state.pickerOpen = false; state.feedOpen = true;
+  ctx.persist(); ctx.render();
+}
 
 export function renderStarter(ctx) {
   const { state } = ctx;
   const store = state.store;
   const now = state.now;
-  const starter = store.starters.find((s) => s.id === store.starterId) || store.starters[0];
-  const { fed, lastFeed, pct } = starterRise(starter, now);
+  const acc = store.accounts[state.accountIdx] || store.accounts[0];
+  const myStarters = startersFor(store, acc.id);
+  const starter = myStarters.find((s) => s.id === acc.starterId) || myStarters[0];
 
   const wrap = el("div", { style: "padding:0 20px" });
+
+  if (!starter) {
+    wrap.appendChild(el("h1", { style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0 0 16px;letter-spacing:-.01em", text: "Starter" }));
+    wrap.appendChild(el("div", { style: "background:#FBF8F1;border-radius:20px;padding:24px;border:1px dashed #DDD2BC;text-align:center;color:#8A8171;font:400 14px/1.5 var(--ui)" }, [
+      el("div", { text: "No starter yet. Add one to start tracking feeds and peak predictions." }),
+      el("div", { class: "btn-primary", style: "margin-top:16px;display:inline-block;user-select:none", text: "Add a starter", onClick: () => addStarter(ctx, acc) }),
+    ]));
+    return wrap;
+  }
+
+  const { fed, lastFeed, pct } = starterRise(starter, now);
 
   const headRow = el("div", { style: "display:flex;align-items:flex-start;gap:12px;position:relative" });
   headRow.appendChild(el("div", { style: "flex:1;min-width:0" }, [
@@ -24,33 +47,27 @@ export function renderStarter(ctx) {
     style: "display:flex;align-items:center;gap:7px;border:1.5px solid #DDD2BC;border-radius:11px;padding:8px 11px;color:#5C5447;cursor:pointer;flex:none",
     onClick: () => { state.pickerOpen = !state.pickerOpen; ctx.render(); },
   }, [
-    el("span", { style: "font:600 12px/1 var(--ui);white-space:nowrap", text: store.starters.length + (store.starters.length === 1 ? " starter" : " starters") }),
+    el("span", { style: "font:600 12px/1 var(--ui);white-space:nowrap", text: myStarters.length + (myStarters.length === 1 ? " starter" : " starters") }),
     el("div", { html: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"></path></svg>' }),
   ]));
 
   if (state.pickerOpen) {
     const menu = el("div", { style: "position:absolute;top:46px;right:0;width:236px;background:#FBF8F1;border:1px solid #E4DAC6;border-radius:16px;box-shadow:0 14px 34px rgba(60,48,28,.16);overflow:hidden;z-index:20" });
-    store.starters.forEach((s) => {
+    myStarters.forEach((s) => {
       menu.appendChild(el("div", {
-        style: `display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid #EFE8DA;cursor:pointer;background:${s.id === store.starterId ? "#EFE7D8" : "#FBF8F1"}`,
-        onClick: () => { store.starterId = s.id; state.pickerOpen = false; state.feedOpen = false; ctx.persist(); ctx.render(); },
+        style: `display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:1px solid #EFE8DA;cursor:pointer;background:${s.id === starter.id ? "#EFE7D8" : "#FBF8F1"}`,
+        onClick: () => { acc.starterId = s.id; state.pickerOpen = false; state.feedOpen = false; ctx.persist(); ctx.render(); },
       }, [
         el("div", { style: "flex:1;min-width:0" }, [
           el("div", { style: "font:600 13.5px/1.3 var(--ui);color:#221F19", text: s.name }),
           el("div", { style: "font:400 11.5px/1.3 var(--ui);color:#8A8171;margin-top:3px", text: s.feeds[0] ? "fed " + ago(s.feeds[0].at, now) : "never fed" }),
         ]),
-        el("div", { style: "font:400 11px/1 var(--ui);color:#A65A2E", text: s.id === store.starterId ? "●" : "" }),
+        el("div", { style: "font:400 11px/1 var(--ui);color:#A65A2E", text: s.id === starter.id ? "●" : "" }),
       ]));
     });
     menu.appendChild(el("div", {
       style: "display:flex;align-items:center;gap:9px;padding:13px 14px;cursor:pointer;color:#A65A2E",
-      onClick: () => {
-        const n = store.starters.length + 1;
-        const id = "new-" + Date.now();
-        store.starters.push({ id, name: "Starter " + n, age: "New · name it and log the first feed", where: "Counter", peakMin: 420, feeds: [] });
-        store.starterId = id; state.pickerOpen = false; state.feedOpen = true;
-        ctx.persist(); ctx.render();
-      },
+      onClick: () => addStarter(ctx, acc),
     }, [
       el("div", { html: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13"></path><path d="M5.5 12h13"></path></svg>' }),
       el("span", { style: "font:600 13px/1 var(--ui)", text: "Add a starter" }),
@@ -135,7 +152,7 @@ export function renderStarter(ctx) {
   });
   wrap.appendChild(feedList);
 
-  if (store.starters.length > 1) {
+  if (myStarters.length > 1) {
     const dz = el("div", { style: "margin:22px 0 4px;display:flex;justify-content:center" });
     if (!state.deleteArm) {
       dz.appendChild(el("div", {
@@ -151,8 +168,9 @@ export function renderStarter(ctx) {
         el("div", { style: "display:flex;gap:9px;margin-top:13px" }, [
           el("div", { style: "flex:1;background:#F0E9DC;color:#5C5447;border-radius:11px;padding:11px 0;text-align:center;font:600 13.5px/1 var(--ui);cursor:pointer", text: "Keep it", onClick: () => { state.deleteArm = false; ctx.render(); } }),
           el("div", { style: "flex:1;background:#B03A2B;color:#FFF;border-radius:11px;padding:11px 0;text-align:center;font:700 13.5px/1 var(--ui);cursor:pointer", text: "Delete", onClick: () => {
-            const rest = store.starters.filter((x) => x.id !== store.starterId);
-            store.starters = rest; store.starterId = rest[0].id;
+            store.starters = store.starters.filter((x) => x.id !== starter.id);
+            const remaining = startersFor(store, acc.id);
+            acc.starterId = remaining[0] ? remaining[0].id : null;
             state.deleteArm = false; state.pickerOpen = false; state.feedOpen = false;
             ctx.persist(); ctx.render();
           } }),

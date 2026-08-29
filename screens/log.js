@@ -2,25 +2,28 @@
 // docs/design-reference.html isLog block.
 
 import { el } from "./shared-ui.js";
+import { logFor } from "../game/ownership.js";
 
 export function renderLog(ctx) {
   const { state } = ctx;
   const store = state.store;
+  const acc = store.accounts[state.accountIdx] || store.accounts[0];
+  const myLog = logFor(store, acc.id);
   const wrap = el("div", { style: "padding:0 20px" });
 
   wrap.appendChild(el("h1", { style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0 0 6px;letter-spacing:-.01em", text: "Log" }));
   wrap.appendChild(el("div", {
     style: "font:400 13.5px/1.4 var(--ui);color:#8A8171;margin-bottom:20px",
-    text: `${store.log.length} finished bakes · every one keeps the formula it was baked from`,
+    text: `${myLog.length} finished bakes · every one keeps the formula it was baked from`,
   }));
 
-  if (!store.log.length) {
+  if (!myLog.length) {
     wrap.appendChild(el("div", { style: "background:#FBF8F1;border:1px dashed #DDD2BC;border-radius:16px;padding:20px;color:#8A8171;font:400 13px/1.5 var(--ui)", text: "Finish a bake and it lands here with whatever you noted." }));
     return wrap;
   }
 
   const list = el("div", { style: "display:flex;flex-direction:column;gap:14px" });
-  store.log.forEach((e, i) => {
+  myLog.forEach((e, i) => {
     const card = el("div", { style: "background:#FBF8F1;border-radius:18px;border:1px solid #EAE2D2;overflow:hidden" });
     if (i === 0) {
       const ph = el("div", { style: "height:196px;background:#EFE7D8;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden" });

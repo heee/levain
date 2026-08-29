@@ -43,22 +43,29 @@ export function defaultStore() {
     recipes: seedRecipes(),
     bakes: seedBakes(now),
     starters: seedStarters(now),
-    starterId: "bruno",
     log: seedLog(),
     updatedAt: now,
   };
 }
 
+// Bakes/starters/log belong to whoever created them (see game/ownership.js);
+// recipes stay shared. Anything persisted before ownership existed is
+// attributed to the first account, rather than left ownerless (which would
+// make it vanish for everyone) or shown to every baker (the original bug).
 export function normalizeStore(raw) {
   if (!raw || typeof raw !== "object") return defaultStore();
   const d = defaultStore();
+  const accounts = Array.isArray(raw.accounts) && raw.accounts.length ? raw.accounts : d.accounts;
+  const firstId = accounts[0].id;
+  const bakes = Array.isArray(raw.bakes) ? raw.bakes : d.bakes;
+  const starters = Array.isArray(raw.starters) && raw.starters.length ? raw.starters : d.starters;
+  const log = Array.isArray(raw.log) ? raw.log : d.log;
   return {
-    accounts: Array.isArray(raw.accounts) && raw.accounts.length ? raw.accounts : d.accounts,
+    accounts,
     recipes: Array.isArray(raw.recipes) ? raw.recipes : d.recipes,
-    bakes: Array.isArray(raw.bakes) ? raw.bakes : d.bakes,
-    starters: Array.isArray(raw.starters) && raw.starters.length ? raw.starters : d.starters,
-    starterId: raw.starterId || (raw.starters && raw.starters[0] && raw.starters[0].id) || d.starterId,
-    log: Array.isArray(raw.log) ? raw.log : d.log,
+    bakes: bakes.map((b) => (b.ownerId ? b : { ...b, ownerId: firstId })),
+    starters: starters.map((s) => (s.ownerId ? s : { ...s, ownerId: firstId })),
+    log: log.map((e) => (e.ownerId ? e : { ...e, ownerId: firstId })),
     updatedAt: raw.updatedAt || Date.now(),
   };
 }

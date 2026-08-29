@@ -6,10 +6,13 @@ import { fmt, rel, tone, dayTag, brief, human, MIN } from "../game/schedule.js";
 import { projForBake, currentForBake, recipeFor, stepsForBake } from "../game/bakes.js";
 import { METHOD_LABELS } from "../game/methods.js";
 import { markDone, clearDone } from "./now.js";
+import { bakesFor } from "../game/ownership.js";
 
 export function renderBakes(ctx) {
   const { state } = ctx;
   const store = state.store;
+  const acc = store.accounts[state.accountIdx] || store.accounts[0];
+  const myBakes = bakesFor(store, acc.id);
 
   const wrap = el("div", {});
   const head = el("div", { style: "padding:0 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px" });
@@ -34,7 +37,7 @@ export function renderBakes(ctx) {
   head.appendChild(plusWrap);
   wrap.appendChild(head);
 
-  if (!store.bakes.length) {
+  if (!myBakes.length) {
     wrap.appendChild(el("div", { style: "padding:0 20px" }, [
       el("div", { style: "background:#FBF8F1;border-radius:20px;padding:24px;border:1px dashed #DDD2BC;text-align:center;color:#8A8171;font:400 14px/1.5 var(--ui)", text: "No bakes yet. Start one from a recipe." }),
     ]));
@@ -66,12 +69,13 @@ function newBakeMenu(ctx) {
 export function startBakeFromRecipe(ctx, recipeId) {
   const { state } = ctx;
   const store = state.store;
+  const acc = store.accounts[state.accountIdx] || store.accounts[0];
   const r = recipeFor(store, recipeId);
   if (!r) return;
   const at = state.startAbs != null ? state.startAbs : state.now + (state.startPick || 0) * MIN;
-  const nb = { id: "b" + Date.now(), name: r.name, recipe: r.id, loaves: 1, variants: [], done: {}, startAt: at };
+  const nb = { id: "b" + Date.now(), name: r.name, recipe: r.id, loaves: 1, variants: [], done: {}, startAt: at, ownerId: acc.id };
   store.bakes.push(nb);
-  state.idx = store.bakes.length - 1;
+  state.idx = bakesFor(store, acc.id).length - 1;
   state.tab = "bakes"; state.view = "timeline"; state.newBakeOpen = false; state.openRecipeId = null; state.editing = false; state.scale = 1;
   ctx.persist(); ctx.render();
 }
@@ -80,8 +84,10 @@ function timelineView(ctx) {
   const { state } = ctx;
   const store = state.store;
   const now = state.now;
-  state.idx = Math.min(state.idx, store.bakes.length - 1);
-  const bake = store.bakes[state.idx];
+  const acc = store.accounts[state.accountIdx] || store.accounts[0];
+  const myBakes = bakesFor(store, acc.id);
+  state.idx = Math.min(state.idx, myBakes.length - 1);
+  const bake = myBakes[state.idx];
   const p = projForBake(bake, store, now);
   const cur = p.find((x) => !x.isDone);
   const curTone = tone(cur, now);
@@ -93,10 +99,10 @@ function timelineView(ctx) {
   const navRow = el("div", { style: "padding:0 20px;display:flex;align-items:center;gap:10px;margin-bottom:14px;position:relative" });
   navRow.appendChild(el("div", {
     style: "width:32px;height:32px;border-radius:11px;background:#E9E1D0;display:flex;align-items:center;justify-content:center;font:400 17px/1 var(--ui);color:#6E6558;cursor:pointer;flex:none",
-    text: "‹", onClick: () => { state.idx = (state.idx - 1 + store.bakes.length) % store.bakes.length; ctx.render(); },
+    text: "‹", onClick: () => { state.idx = (state.idx - 1 + myBakes.length) % myBakes.length; ctx.render(); },
   }));
   const dots = el("div", { style: "flex:1;display:flex;gap:5px;justify-content:center" });
-  store.bakes.forEach((b, i) => {
+  myBakes.forEach((b, i) => {
     dots.appendChild(el("div", {
       style: `height:6px;border-radius:6px;cursor:pointer;width:${i === state.idx ? "22px" : "6px"};background:${i === state.idx ? "#A65A2E" : "#D9CFBB"}`,
       onClick: () => { state.idx = i; ctx.render(); },
@@ -105,7 +111,7 @@ function timelineView(ctx) {
   navRow.appendChild(dots);
   navRow.appendChild(el("div", {
     style: "width:32px;height:32px;border-radius:11px;background:#E9E1D0;display:flex;align-items:center;justify-content:center;font:400 17px/1 var(--ui);color:#6E6558;cursor:pointer;flex:none",
-    text: "›", onClick: () => { state.idx = (state.idx + 1) % store.bakes.length; ctx.render(); },
+    text: "›", onClick: () => { state.idx = (state.idx + 1) % myBakes.length; ctx.render(); },
   }));
   section.appendChild(navRow);
 
@@ -253,6 +259,8 @@ export function dayView(ctx) {
   const { state } = ctx;
   const store = state.store;
   const now = state.now;
+  const acc = store.accounts[state.accountIdx] || store.accounts[0];
+  const myBakes = bakesFor(store, acc.id);
   const WIN = 12 * 60;
 
   const section = el("div", { style: "padding:0 20px" });
@@ -265,7 +273,7 @@ export function dayView(ctx) {
   section.appendChild(ticks);
 
   const handBlocks = [];
-  store.bakes.forEach((b) => {
+  myBakes.forEach((b) => {
     projForBake(b, store, now).forEach((x) => {
       if (x.isDone || !x.step.act) return;
       const startMin = (x.at - x.step.dur * MIN - now) / MIN;
@@ -288,7 +296,7 @@ export function dayView(ctx) {
   }
 
   const lanes = el("div", { style: "display:flex;flex-direction:column;gap:13px" });
-  store.bakes.forEach((b) => {
+  myBakes.forEach((b) => {
     const pp = projForBake(b, store, now);
     const blocks = pp.filter((x) => !x.isDone && x.at > now - 30 * MIN && x.at < now + WIN * MIN).map((x) => {
       const startMin = Math.max(0, (x.at - x.step.dur * MIN - now) / MIN);

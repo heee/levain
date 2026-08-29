@@ -7,16 +7,18 @@ import { projForBake, currentForBake, recipeFor, methodOf } from "../game/bakes.
 import { METHODS, IDXS } from "../game/methods.js";
 import { buildAdvice } from "../game/advice.js";
 import { starterLine } from "./starter-vm.js";
+import { bakesFor, startersFor } from "../game/ownership.js";
 
 export function renderNow(ctx) {
   const { state } = ctx;
   const store = state.store;
   const now = state.now;
   const acc = store.accounts[state.accountIdx] || store.accounts[0];
+  const myBakes = bakesFor(store, acc.id);
 
   const wrap = el("div", { style: "padding:0 20px" });
 
-  const cards = store.bakes
+  const cards = myBakes
     .map((b) => {
       const p = projForBake(b, store, now);
       const c = p.find((x) => !x.isDone);
@@ -30,7 +32,7 @@ export function renderNow(ctx) {
   const headRight = el("div", { style: "display:flex;align-items:center;gap:10px" });
   headRight.appendChild(el("div", {
     style: "font:400 13px/1.4 var(--ui);color:#8A8171;text-align:right;white-space:nowrap",
-    text: `${store.bakes.length} bakes going · ${store.bakes.reduce((a, b) => a + b.loaves, 0)} loaves`,
+    text: `${myBakes.length} bakes going · ${myBakes.reduce((a, b) => a + b.loaves, 0)} loaves`,
   }));
   const avatar = el("div", {
     style: `width:30px;height:30px;flex:none;border-radius:20px;background:${acc.tint};display:flex;align-items:center;justify-content:center;cursor:pointer`,
@@ -75,7 +77,7 @@ export function renderNow(ctx) {
   bottomRow.appendChild(el("div", {
     style: "background:#F0E9DC;color:#5C5447;border-radius:12px;padding:12px 15px;font:600 14px/1 var(--ui);white-space:nowrap;cursor:pointer;flex:none",
     text: "Open",
-    onClick: () => { state.tab = "bakes"; state.view = "timeline"; state.idx = store.bakes.findIndex((x) => x.id === hero.b.id); ctx.render(); },
+    onClick: () => { state.tab = "bakes"; state.view = "timeline"; state.idx = myBakes.findIndex((x) => x.id === hero.b.id); ctx.render(); },
   }));
   bottomRow.appendChild(el("div", {
     style: "border-radius:12px;height:38px;width:38px;box-sizing:border-box;background:#A65A2E;color:#FFF;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none",
@@ -116,7 +118,7 @@ export function renderNow(ctx) {
   rest.forEach((x) => {
     const row = el("div", {
       style: "background:#FBF8F1;border-radius:15px;padding:14px 15px;display:flex;align-items:center;gap:13px;cursor:pointer;border:1px solid #EAE2D2",
-      onClick: () => { state.tab = "bakes"; state.view = "timeline"; state.idx = store.bakes.findIndex((y) => y.id === x.b.id); ctx.render(); },
+      onClick: () => { state.tab = "bakes"; state.view = "timeline"; state.idx = myBakes.findIndex((y) => y.id === x.b.id); ctx.render(); },
     });
     row.appendChild(el("div", { style: `width:6px;height:34px;border-radius:6px;background:${x.tone.c};flex:none` }));
     const info = el("div", { style: "flex:1;min-width:0" });
@@ -138,8 +140,10 @@ export function renderNow(ctx) {
 function starterTeaser(ctx) {
   const { state } = ctx;
   const store = state.store;
-  const starter = store.starters.find((s) => s.id === store.starterId) || store.starters[0];
-  const line = starterLine(starter, state.now);
+  const acc = store.accounts[state.accountIdx] || store.accounts[0];
+  const myStarters = startersFor(store, acc.id);
+  const starter = myStarters.find((s) => s.id === acc.starterId) || myStarters[0];
+  const line = starter ? starterLine(starter, state.now) : "No starter yet — add one to start tracking feeds";
   const row = el("div", {
     style: "margin-top:22px;background:#EFE7D8;border-radius:15px;padding:15px;display:flex;align-items:center;gap:13px;cursor:pointer",
     onClick: () => { state.tab = "starter"; ctx.render(); },
