@@ -102,7 +102,8 @@ const ctx = {
 
 function renderTabBar() {
   tabBar.innerHTML = "";
-  if (state.screen !== "app") return;
+  if (state.screen !== "app") { tabBar.style.display = "none"; return; }
+  tabBar.style.display = "";
   TAB_DEFS.forEach((t) => {
     const active = state.tab === t.id;
     const item = el("div", { class: "tab-item" + (active ? " active" : ""), style: `color:${active ? "#A65A2E" : "#A79C8A"}`, onClick: go(t.id) });
@@ -135,7 +136,14 @@ function render() {
   renderTabBar();
 }
 
-window.addEventListener("resize", () => render());
+window.addEventListener("resize", () => {
+  // The welcome screen's layout doesn't depend on viewport width (the
+  // phone/tablet split only applies once inside the app), so skip the
+  // rebuild there. iOS Safari fires a resize event when its address bar
+  // auto-collapses shortly after load, and rebuilding the whole screen right
+  // then is what made the welcome screen visibly jump.
+  if (state.screen !== "welcome") render();
+});
 
 setInterval(() => {
   state.now = Date.now();
