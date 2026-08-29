@@ -1,7 +1,7 @@
 // Levain — Recipes tab: list, new-recipe builder, detail/edit, start-time
 // picker, share. See docs/design-reference.html isRecipes block.
 
-import { el } from "./shared-ui.js";
+import { el, iconEl } from "./shared-ui.js";
 import { fmt, dayTag, human, MIN, inSleep } from "../game/schedule.js";
 import { recipeFor, stepsForBake } from "../game/bakes.js";
 import { proj } from "../game/schedule.js";
@@ -22,6 +22,7 @@ export function renderRecipes(ctx) {
   if (recipe) { wrap.appendChild(recipeDetail(ctx, recipe)); return wrap; }
   if (state.builder) { wrap.appendChild(recipeBuilder(ctx)); return wrap; }
 
+  const header = el("div", { class: "sticky-header", style: "padding-bottom:14px" });
   const head = el("div", { style: "display:flex;align-items:flex-start;gap:12px" });
   head.appendChild(el("div", { style: "flex:1" }, [
     el("h1", { style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0 0 6px;letter-spacing:-.01em", text: "Recipes" }),
@@ -32,10 +33,33 @@ export function renderRecipes(ctx) {
     html: '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13"></path><path d="M5.5 12h13"></path></svg>',
     onClick: () => { state.builder = true; state.nr = { name: "", sub: "", method: "sourdough", ing: [{ name: "", g: "" }, { name: "", g: "" }], steps: [] }; ctx.render(); },
   }));
-  wrap.appendChild(head);
+  header.appendChild(head);
+
+  const searchWrap = el("div", { style: "position:relative;margin-top:16px" });
+  searchWrap.appendChild(iconEl("search", "position:absolute;left:14px;top:50%;transform:translateY(-50%);color:#A79C8A;pointer-events:none"));
+  const searchInput = el("input", { id: "recipe-search-input", class: "field", style: "padding-left:40px", placeholder: "Search recipes", value: state.recipeSearch });
+  searchInput.addEventListener("input", (e) => {
+    state.recipeSearch = e.target.value;
+    const pos = e.target.selectionStart;
+    ctx.render();
+    const refocused = document.getElementById("recipe-search-input");
+    if (refocused) { refocused.focus(); refocused.setSelectionRange(pos, pos); }
+  });
+  searchWrap.appendChild(searchInput);
+  header.appendChild(searchWrap);
+  wrap.appendChild(header);
+
+  const q = state.recipeSearch.trim().toLowerCase();
+  const visibleRecipes = q ? myRecipes.filter((r) => r.name.toLowerCase().includes(q)) : myRecipes;
 
   const list = el("div", { style: "display:flex;flex-direction:column;gap:10px;margin-top:20px" });
-  myRecipes.forEach((r) => {
+  if (q && !visibleRecipes.length) {
+    list.appendChild(el("div", {
+      style: "background:#FBF8F1;border-radius:17px;padding:20px;text-align:center;color:#8A8171;font:400 13.5px/1.5 var(--ui)",
+      text: `No recipes match "${state.recipeSearch.trim()}".`,
+    }));
+  }
+  visibleRecipes.forEach((r) => {
     const liq = r.rows.find((x) => /water|milk/i.test(x[0]));
     const fl = r.rows.filter((x) => /flour|wheat|rye|semolina/i.test(x[0])).reduce((a, x) => a + x[1], 0);
     const authored = liq && liq[2] && liq[2] !== "—" ? liq[2] : null;

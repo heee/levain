@@ -47,6 +47,7 @@ const state = {
   rDel: false,
   deleteArm: false,
   newOpen: false,
+  recipeSearch: "",
   newName: "",
   newTint: 0,
   wOff: 0,
@@ -89,6 +90,9 @@ const syncer = createSyncer({
   getLocalStore: () => state.store,
   onMergedStore: (remote) => {
     state.store = mergeStores(state.store, remote);
+    const liveAccounts = state.store.accounts.filter((a) => !a.deleted);
+    if (liveAccounts.length) state.store.accounts = liveAccounts;
+    if (!state.store.accounts[state.accountIdx]) state.accountIdx = 0;
     jsonStorage.write(LOCAL_KEYS.store, state.store);
     revalidateOpenReferences();
     render();
@@ -98,6 +102,11 @@ const syncer = createSyncer({
 const root = document.getElementById("screen-root");
 const tabBar = document.getElementById("tab-bar");
 
+function updateHeaderShadow() {
+  root.classList.toggle("scrolled", root.scrollTop > 2);
+}
+root.addEventListener("scroll", updateHeaderShadow, { passive: true });
+
 function go(tab) {
   return () => {
     state.tab = tab;
@@ -106,6 +115,7 @@ function go(tab) {
     state.editing = false;
     state.newBakeOpen = false;
     state.pickerOpen = false;
+    root.scrollTop = 0;
     render();
   };
 }
@@ -138,12 +148,14 @@ function render() {
   if (state.screen === "welcome") {
     root.appendChild(renderWelcome(ctx));
     renderTabBar();
+    updateHeaderShadow();
     return;
   }
 
   if (isTabletViewport()) {
     root.appendChild(renderTablet(ctx));
     renderTabBar();
+    updateHeaderShadow();
     return;
   }
 
@@ -151,6 +163,7 @@ function render() {
   const fn = screenFns[state.tab] || renderNow;
   root.appendChild(fn(ctx));
   renderTabBar();
+  updateHeaderShadow();
 }
 
 window.addEventListener("resize", () => {

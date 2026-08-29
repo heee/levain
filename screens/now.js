@@ -27,7 +27,7 @@ export function renderNow(ctx) {
     .filter(Boolean)
     .sort((p, q) => p.c.at - q.c.at);
 
-  const head = el("div", { style: "display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:20px" });
+  const head = el("div", { class: "sticky-header", style: "display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:20px" });
   head.appendChild(el("h1", { style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0;letter-spacing:-.01em", text: "Today" }));
   const headRight = el("div", { style: "display:flex;align-items:center;gap:10px" });
   headRight.appendChild(el("div", {

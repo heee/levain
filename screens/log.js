@@ -11,11 +11,13 @@ export function renderLog(ctx) {
   const myLog = logFor(store, acc.id);
   const wrap = el("div", { style: "padding:0 20px" });
 
-  wrap.appendChild(el("h1", { style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0 0 6px;letter-spacing:-.01em", text: "Log" }));
-  wrap.appendChild(el("div", {
-    style: "font:400 13.5px/1.4 var(--ui);color:#8A8171;margin-bottom:20px",
-    text: `${myLog.length} finished bakes · every one keeps the formula it was baked from`,
-  }));
+  wrap.appendChild(el("div", { class: "sticky-header", style: "padding-bottom:20px" }, [
+    el("h1", { style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0 0 6px;letter-spacing:-.01em", text: "Log" }),
+    el("div", {
+      style: "font:400 13.5px/1.4 var(--ui);color:#8A8171",
+      text: `${myLog.length} finished bakes · every one keeps the formula it was baked from`,
+    }),
+  ]));
 
   if (!myLog.length) {
     wrap.appendChild(el("div", { style: "background:#FBF8F1;border:1px dashed #DDD2BC;border-radius:16px;padding:20px;color:#8A8171;font:400 13px/1.5 var(--ui)", text: "Finish a bake and it lands here with whatever you noted." }));

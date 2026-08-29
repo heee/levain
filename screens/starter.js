@@ -40,7 +40,7 @@ export function renderStarter(ctx) {
 
   const { fed, lastFeed, pct } = starterRise(starter, now);
 
-  const headRow = el("div", { style: "display:flex;align-items:flex-start;gap:12px;position:relative" });
+  const headRow = el("div", { class: "sticky-header", style: "display:flex;align-items:flex-start;gap:12px;padding-bottom:20px" });
   headRow.appendChild(el("div", { style: "flex:1;min-width:0" }, [
     el("h1", { style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0 0 6px;letter-spacing:-.01em", text: starter.name }),
     el("div", { style: "font:400 13.5px/1.4 var(--ui);color:#8A8171", text: starter.age }),
@@ -77,7 +77,6 @@ export function renderStarter(ctx) {
     headRow.appendChild(menu);
   }
   wrap.appendChild(headRow);
-  wrap.appendChild(el("div", { style: "height:20px" }));
 
   const card = el("div", { style: "background:#FBF8F1;border-radius:20px;border:1px solid #EAE2D2;overflow:hidden" });
   const photo = el("div", { style: "height:150px;background:#EFE7D8;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden" });

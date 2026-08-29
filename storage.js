@@ -71,7 +71,9 @@ function backfillRecord(r) {
 export function normalizeStore(raw) {
   if (!raw || typeof raw !== "object") return defaultStore();
   const d = defaultStore();
-  const accounts = (Array.isArray(raw.accounts) && raw.accounts.length ? raw.accounts : d.accounts).map(backfillRecord);
+  const allAccounts = (Array.isArray(raw.accounts) && raw.accounts.length ? raw.accounts : d.accounts).map(backfillRecord);
+  const liveAccounts = allAccounts.filter((a) => !a.deleted);
+  const accounts = liveAccounts.length ? liveAccounts : allAccounts;
   const firstId = accounts[0].id;
   const bakes = (Array.isArray(raw.bakes) ? raw.bakes : d.bakes).map(backfillRecord);
   const starters = (Array.isArray(raw.starters) && raw.starters.length ? raw.starters : d.starters).map(backfillRecord);

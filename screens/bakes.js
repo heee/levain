@@ -16,7 +16,7 @@ export function renderBakes(ctx) {
   const myBakes = bakesFor(store, acc.id);
 
   const wrap = el("div", {});
-  const head = el("div", { style: "padding:0 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px" });
+  const head = el("div", { class: "sticky-header", style: "padding:0 20px 16px;display:flex;align-items:center;justify-content:space-between" });
   head.appendChild(el("h1", { style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0;letter-spacing:-.01em", text: "Bakes" }));
   const seg = el("div", { style: "display:flex;background:#E7DECC;border-radius:11px;padding:3px" });
   seg.appendChild(el("div", {
