@@ -88,7 +88,7 @@ export function renderRecipes(ctx) {
 function recipeBuilder(ctx) {
   const { state } = ctx;
   const nr = state.nr;
-  const wrap = el("div", {});
+  const wrap = el("div", { style: "padding-top:62px" });
 
   const topRow = el("div", { style: "display:flex;align-items:center;gap:12px;margin-bottom:16px" });
   topRow.appendChild(el("div", { style: "flex:1;font:600 13px/1 var(--ui);color:#A65A2E;cursor:pointer", text: "‹ Recipes", onClick: () => { state.builder = false; ctx.render(); } }));
@@ -212,7 +212,7 @@ function recipeDetail(ctx, recipe) {
   const now = state.now;
   const editing = state.editing;
 
-  const wrap = el("div", {});
+  const wrap = el("div", { style: "padding-top:62px" });
   const topRow = el("div", { style: "display:flex;align-items:center;gap:12px;margin-bottom:16px" });
   topRow.appendChild(el("div", { style: "flex:1;font:600 13px/1 var(--ui);color:#A65A2E;cursor:pointer", text: "‹ Recipes", onClick: () => { state.openRecipeId = null; state.editing = false; ctx.render(); } }));
   topRow.appendChild(el("div", {

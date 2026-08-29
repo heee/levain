@@ -9,7 +9,7 @@ import { stepsForBake } from "../game/bakes.js";
 import { human } from "../game/schedule.js";
 
 function shell(children) {
-  const wrap = el("div", { style: "padding:34px 20px 60px;max-width:480px;margin:0 auto;box-sizing:border-box" });
+  const wrap = el("div", { style: "padding:62px 20px 60px;max-width:480px;margin:0 auto;box-sizing:border-box" });
   wrap.appendChild(el("div", { style: "font:400 20px/1 'Source Serif 4',Georgia,serif;color:#221F19;margin-bottom:26px", text: "Levain" }));
   children.forEach((c) => wrap.appendChild(c));
   return wrap;
