@@ -116,7 +116,7 @@ export function renderWelcome(ctx) {
     input.addEventListener("input", (e) => { state.newName = e.target.value; });
     sheet.appendChild(input);
 
-    const tints = el("div", { style: "display:flex;gap:10px;margin-top:16px" });
+    const tints = el("div", { style: "display:flex;flex-wrap:wrap;gap:10px;margin-top:16px" });
     TINTS.forEach((hex, i) => {
       const ring = state.newTint === i ? "3px #A65A2E" : "0 transparent";
       tints.appendChild(el("div", {

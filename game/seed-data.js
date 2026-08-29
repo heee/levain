@@ -3,7 +3,23 @@
 // like the design rather than an empty shell. All of it is editable/
 // deletable from the app afterward — see storage.js for how it's persisted.
 
-export const TINTS = ["#E7D3B2", "#E8C7B6", "#D9E0CE", "#DCD6E0"];
+// 4 original + 8 more in the same soft, muted-pastel family (same
+// lightness/saturation range, spread around the hue wheel so each new one
+// reads distinct from its neighbors and from the originals).
+export const TINTS = [
+  "#E7D3B2", // tan / wheat
+  "#E8C7B6", // peach
+  "#E4B4B5", // coral blush
+  "#E2D1A2", // gold / mustard
+  "#D9E0CE", // sage
+  "#C0DDD0", // mint / seafoam
+  "#BEDADA", // teal / aqua
+  "#C1D3E1", // sky blue
+  "#C9CEE3", // periwinkle
+  "#DCD6E0", // lavender
+  "#E0CCE0", // orchid / mauve
+  "#E2C6D1", // berry pink
+];
 
 // Seed records stamp updatedAt: 0 (not Date.now()) — a placeholder must
 // always look "older" than any real edit, from any device, at any time, or
