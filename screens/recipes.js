@@ -70,7 +70,10 @@ export function renderRecipes(ctx) {
     }, [
       el("div", { style: "display:flex;align-items:baseline;gap:10px" }, [
         el("div", { style: "flex:1;font:400 19px/1.2 'Source Serif 4',Georgia,serif", text: r.name }),
-        el("div", { style: "font:500 11.5px/1 var(--num);color:#A79C8A", text: hydration }),
+        el("div", { style: "display:flex;align-items:center;gap:4px;flex:none" }, [
+          iconEl("dropSmall", "color:#A79C8A"),
+          el("span", { style: "font:500 11.5px/1 var(--num);color:#A79C8A", text: hydration }),
+        ]),
       ]),
       el("div", { style: "font:400 12.5px/1.45 var(--ui);color:#8A8171;margin-top:6px", text: r.sub }),
     ]));

@@ -47,6 +47,7 @@ export const ICONS = {
   close: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path></svg>',
   alexa: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.1"></circle><path d="M6.9 8.6a6.6 6.6 0 0 0 0 6.8"></path><path d="M17.1 8.6a6.6 6.6 0 0 1 0 6.8"></path><path d="M4.2 5.6a10.6 10.6 0 0 0 0 12.8"></path><path d="M19.8 5.6a10.6 10.6 0 0 1 0 12.8"></path></svg>',
   drop: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5c3 3.9 6 8 6 11.2a6 6 0 1 1-12 0c0-3.2 3-7.3 6-11.2z"></path></svg>',
+  dropSmall: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5c3 3.9 6 8 6 11.2a6 6 0 1 1-12 0c0-3.2 3-7.3 6-11.2z"></path></svg>',
   download: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11.5"></path><path d="M7 11.5l5 5 5-5"></path><path d="M5 19.5h14"></path></svg>',
 };
 
