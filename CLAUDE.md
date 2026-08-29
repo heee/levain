@@ -41,7 +41,7 @@ ported into `game/*.js` as pure functions.
   `game/ownership.js` (`bakesFor`/`startersFor`/`logFor`/`recipesFor`). A new
   baker gets their own copy of the starter recipe set (`seedRecipesFor` in
   `game/seed-data.js`), not a reference to anyone else's — editing one
-  person's "Country Loaf" never touches another's. **Follow-up, not built
+  person's "Beginner's Sourdough" never touches another's. **Follow-up, not built
   yet:** a real shared/collaborative recipe (one recipe multiple bakers edit
   together) — currently every "share" is a one-time copy at account creation.
 - **For major/new-feature work, ask clarifying questions one-by-one before

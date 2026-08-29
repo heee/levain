@@ -20,7 +20,7 @@ export function seedAccounts() {
 
 export function seedRecipes() {
   return [
-    { id: "country", name: "Country Loaf", sub: "The everyday one. All-purpose, no fuss.", method: "sourdough",
+    { id: "country", name: "Beginner's Sourdough", sub: "The everyday one. All-purpose, no fuss.", method: "sourdough",
       rows: [["All-purpose flour", 475, "100%"], ["Water", 325, "68%"], ["Active starter", 100, "21%"], ["Salt", 10, "2.1%"]],
       last: "Sunday — rated 4, best crumb yet." },
     { id: "rye", name: "Rye 20%", sub: "Denser, darker, ferments faster than you expect.", method: "sourdough",
@@ -91,7 +91,7 @@ export function seedStarters(n = Date.now()) {
 export function seedLog() {
   const ownerId = "a-hen";
   return [
-    { id: "log-" + ownerId + "-0", name: "Country Loaf", when: "Sunday 17 Aug · 4 loaves", stars: "★★★★☆", ownerId,
+    { id: "log-" + ownerId + "-0", name: "Beginner's Sourdough", when: "Sunday 17 Aug · 4 loaves", stars: "★★★★☆", ownerId,
       notes: "Bulk ran 6h40 in a 23° kitchen. Best ear I've had. Crumb slightly tight in the middle third.",
       next: "Push bulk another 30 minutes and shape a touch looser.", updatedAt: 0, deleted: false },
     { id: "log-" + ownerId + "-1", name: "Rye 20%", when: "Sat 9 Aug · 2 loaves", stars: "★★★☆☆", ownerId,

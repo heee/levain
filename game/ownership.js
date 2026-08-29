@@ -1,5 +1,5 @@
 // Levain — per-baker ownership. Every baker gets their own copy of
-// everything — recipes included — so editing one baker's "Country Loaf"
+// everything — recipes included — so editing one baker's "Beginner's Sourdough"
 // never touches anyone else's. New bakers start from the same seed recipe
 // set (see seedRecipesFor in game/seed-data.js) but it's their own copy from
 // the moment it's created.
