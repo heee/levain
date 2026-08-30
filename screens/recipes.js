@@ -500,7 +500,7 @@ function startTimeGrid(ctx, recipe) {
   const uniq = [];
   [candidatesRaw[0], best, later].forEach((c) => { if (c && !uniq.some((u) => u.d === c.d)) uniq.push(c); });
 
-  const grid = el("div", { style: "display:grid;grid-template-columns:1fr 1fr;gap:9px" });
+  const grid = el("div", { style: "display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px" });
   uniq.forEach((c) => {
     const sel = state.startAbs == null && (state.startPick || 0) === c.d;
     const verdict = c.wake === 0 ? "Nothing in your sleep hours" : c.wake === 1 ? "1 step lands while you're asleep" : c.wake + " steps land while you're asleep";
@@ -511,8 +511,8 @@ function startTimeGrid(ctx, recipe) {
       style: `border-radius:15px;padding:14px 15px;cursor:pointer;background:${bg};border:1px solid ${line};display:flex;flex-direction:column;justify-content:space-between;min-height:96px;box-sizing:border-box`,
       onClick: () => { state.startPick = c.d; state.startAbs = null; ctx.render(); },
     }, [
-      el("div", { style: "display:flex;align-items:baseline;gap:10px" }, [
-        el("div", { style: "flex:1;font:600 14.5px/1.3 var(--ui);color:#221F19", text: c.d === 0 ? "Start now" : c.d < 60 ? "In " + c.d + " min" : "At " + fmt(c.at) }),
+      el("div", { style: "display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;row-gap:2px" }, [
+        el("div", { style: "flex:1;min-width:0;font:600 14.5px/1.3 var(--ui);color:#221F19", text: c.d === 0 ? "Start now" : c.d < 60 ? "In " + c.d + " min" : "At " + fmt(c.at) }),
         el("div", { style: "font:500 12px/1 var(--num);color:#A79C8A;white-space:nowrap", text: "out " + fmt(c.out) + dayTag(c.out, now) }),
       ]),
       el("div", { style: `font:400 12.5px/1.4 var(--ui);margin-top:5px;color:${tone}`, text: verdict }),
