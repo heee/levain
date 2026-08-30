@@ -73,40 +73,13 @@ function pickImageFile() {
   });
 }
 
-// Downscales/recompresses an image file client-side before it ever touches
-// the store — photos are the one thing in this app big enough to bloat the
-// synced JSON blob, so every upload gets capped to maxDim on its long edge
-// and re-encoded as JPEG at `quality` before being kept as a data URI.
-function resizeImageFile(file, maxDim = 900, quality = 0.65) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(reader.error);
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = reject;
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > maxDim || height > maxDim) {
-          if (width >= height) { height = Math.round((height * maxDim) / width); width = maxDim; }
-          else { width = Math.round((width * maxDim) / height); height = maxDim; }
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-// Picks an image and returns a resized data URI ready to store on a record.
+// Picks an image, lets the user crop/reposition it to `aspectRatio`, and
+// returns the resulting resized data URI ready to store on a record.
 // Swallows cancellation/errors — callers just get nothing back and re-render.
-export async function pickAndResizePhoto(maxDim, quality) {
+export async function pickAndResizePhoto(maxDim, quality, aspectRatio = 1) {
   const file = await pickImageFile();
-  return resizeImageFile(file, maxDim, quality);
+  const { cropImage } = await import("./photo-crop.js");
+  return cropImage({ file, aspectRatio, maxDim, quality });
 }
 
 // A tappable photo well: shows the stored photo if there is one, otherwise
@@ -122,10 +95,12 @@ export function photoSlot({ height, photo, placeholder, onPicked, maxDim, qualit
   }
   box.addEventListener("click", async () => {
     try {
-      const dataUrl = await pickAndResizePhoto(maxDim, quality);
+      const rect = box.getBoundingClientRect();
+      const aspectRatio = rect.width / rect.height;
+      const dataUrl = await pickAndResizePhoto(maxDim, quality, aspectRatio);
       onPicked(dataUrl);
     } catch (e) {
-      // user cancelled the picker — nothing to do
+      // user cancelled the picker or crop — nothing to do
     }
   });
   return box;
