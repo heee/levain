@@ -51,7 +51,8 @@ export function renderNow(ctx) {
       style: "background:#FBF8F1;border-radius:20px;padding:24px;border:1px dashed #DDD2BC;text-align:center;color:#8A8171;font:400 14px/1.5 var(--ui)",
       text: "Nothing rising right now. Start a bake from the Bakes tab.",
     }));
-    wrap.appendChild(starterTeaser(ctx));
+    const teaser = starterTeaser(ctx);
+  if (teaser) wrap.appendChild(teaser);
     return wrap;
   }
 
@@ -135,13 +136,15 @@ export function renderNow(ctx) {
   });
   wrap.appendChild(restWrap);
 
-  wrap.appendChild(starterTeaser(ctx));
+  const teaser = starterTeaser(ctx);
+  if (teaser) wrap.appendChild(teaser);
   return wrap;
 }
 
-// Shows every starter the baker has, not just whichever is currently
-// selected — a single-row teaser here previously only ever surfaced
-// acc.starterId's starter, hiding any others from this screen entirely.
+// Today only calls out starters that actually need you right now — at
+// peak — rather than the full list, which lives on the Starter tab
+// already. A starter that's still rising isn't actionable yet, so
+// listing it here just crowds out what is.
 function starterTeaser(ctx) {
   const { state } = ctx;
   const store = state.store;
@@ -154,9 +157,8 @@ function starterTeaser(ctx) {
     ctx.persist(); ctx.render();
   };
 
-  const wrap = el("div", { style: "margin-top:22px;display:flex;flex-direction:column;gap:9px" });
-
   if (!myStarters.length) {
+    const wrap = el("div", { style: "margin-top:22px;display:flex;flex-direction:column;gap:9px" });
     const row = el("div", {
       style: "background:#EFE7D8;border-radius:15px;padding:15px;display:flex;align-items:center;gap:13px;cursor:pointer",
       onClick: () => { state.tab = "starter"; ctx.render(); },
@@ -171,16 +173,19 @@ function starterTeaser(ctx) {
     return wrap;
   }
 
-  myStarters.forEach((s) => {
+  const atPeak = myStarters.filter((s) => {
     const { fed, pct } = starterRise(s, state.now);
-    const atPeak = fed && pct >= 90;
+    return fed && pct >= 90;
+  });
+  if (!atPeak.length) return null;
+
+  const wrap = el("div", { style: "margin-top:22px;display:flex;flex-direction:column;gap:9px" });
+  atPeak.forEach((s) => {
     const row = el("div", {
       style: "background:#EFE7D8;border-radius:15px;padding:15px;display:flex;align-items:center;gap:13px;cursor:pointer",
       onClick: () => openStarter(s),
     });
-    row.appendChild(el("div", {
-      style: `width:34px;height:34px;border-radius:11px;background:${atPeak ? "#F2DFDA" : "#E2D6BE"};flex:none;display:flex;align-items:center;justify-content:center`,
-    }, [iconEl("starter", `color:${atPeak ? "#B03A2B" : "#8A7A55"}`)]));
+    row.appendChild(el("div", { style: "width:34px;height:34px;border-radius:11px;background:#F2DFDA;flex:none;display:flex;align-items:center;justify-content:center" }, [iconEl("starter", "color:#B03A2B")]));
     const info = el("div", { style: "flex:1" });
     info.appendChild(el("div", { style: "font:600 14px/1.3 var(--ui)", text: s.name }));
     info.appendChild(el("div", { style: "font:400 12.5px/1.4 var(--ui);color:#8A8171;margin-top:2px", text: starterLine(s, state.now) }));
