@@ -48,7 +48,7 @@ export function renderNow(ctx) {
 
   if (!cards.length) {
     wrap.appendChild(el("div", {
-      style: "background:#FBF8F1;border-radius:20px;padding:24px;border:1px solid #EAE2D2;text-align:center;color:#8A8171;font:400 14px/1.5 var(--ui)",
+      style: "background:#FBF8F1;border-radius:20px;padding:24px;border:1px dashed #DDD2BC;text-align:center;color:#8A8171;font:400 14px/1.5 var(--ui)",
       text: "Nothing rising right now. Start a bake from the Bakes tab.",
     }));
     wrap.appendChild(starterTeaser(ctx));
@@ -139,24 +139,52 @@ export function renderNow(ctx) {
   return wrap;
 }
 
+// Shows every starter the baker has, not just whichever is currently
+// selected — a single-row teaser here previously only ever surfaced
+// acc.starterId's starter, hiding any others from this screen entirely.
 function starterTeaser(ctx) {
   const { state } = ctx;
   const store = state.store;
   const acc = store.accounts[state.accountIdx] || store.accounts[0];
   const myStarters = startersFor(store, acc.id);
-  const starter = myStarters.find((s) => s.id === acc.starterId) || myStarters[0];
-  const line = starter ? starterLine(starter, state.now) : "No starter yet — add one to start tracking feeds";
-  const row = el("div", {
-    style: "margin-top:22px;background:#EFE7D8;border-radius:15px;padding:15px;display:flex;align-items:center;gap:13px;cursor:pointer",
-    onClick: () => { state.tab = "starter"; ctx.render(); },
+
+  const openStarter = (s) => {
+    acc.starterId = s.id; acc.updatedAt = Date.now();
+    state.tab = "starter"; state.starterDetailOpen = true;
+    ctx.persist(); ctx.render();
+  };
+
+  const wrap = el("div", { style: "margin-top:22px;display:flex;flex-direction:column;gap:9px" });
+
+  if (!myStarters.length) {
+    const row = el("div", {
+      style: "background:#EFE7D8;border-radius:15px;padding:15px;display:flex;align-items:center;gap:13px;cursor:pointer",
+      onClick: () => { state.tab = "starter"; ctx.render(); },
+    });
+    row.appendChild(el("div", { style: "width:34px;height:34px;border-radius:11px;background:#E2D6BE;flex:none;display:flex;align-items:center;justify-content:center" }, [iconEl("starter", "color:#8A7A55")]));
+    const info = el("div", { style: "flex:1" });
+    info.appendChild(el("div", { style: "font:600 14px/1.3 var(--ui)", text: "Starter" }));
+    info.appendChild(el("div", { style: "font:400 12.5px/1.4 var(--ui);color:#8A8171;margin-top:2px", text: "No starter yet — add one to start tracking feeds" }));
+    row.appendChild(info);
+    row.appendChild(el("div", { style: "font:400 20px/1 var(--ui);color:#B8AC95", text: "›" }));
+    wrap.appendChild(row);
+    return wrap;
+  }
+
+  myStarters.forEach((s) => {
+    const row = el("div", {
+      style: "background:#EFE7D8;border-radius:15px;padding:15px;display:flex;align-items:center;gap:13px;cursor:pointer",
+      onClick: () => openStarter(s),
+    });
+    row.appendChild(el("div", { style: "width:34px;height:34px;border-radius:11px;background:#E2D6BE;flex:none;display:flex;align-items:center;justify-content:center" }, [iconEl("starter", "color:#8A7A55")]));
+    const info = el("div", { style: "flex:1" });
+    info.appendChild(el("div", { style: "font:600 14px/1.3 var(--ui)", text: s.name }));
+    info.appendChild(el("div", { style: "font:400 12.5px/1.4 var(--ui);color:#8A8171;margin-top:2px", text: starterLine(s, state.now) }));
+    row.appendChild(info);
+    row.appendChild(el("div", { style: "font:400 20px/1 var(--ui);color:#B8AC95", text: "›" }));
+    wrap.appendChild(row);
   });
-  row.appendChild(el("div", { style: "width:34px;height:34px;border-radius:11px;background:#E2D6BE;flex:none" }));
-  const info = el("div", { style: "flex:1" });
-  info.appendChild(el("div", { style: "font:600 14px/1.3 var(--ui)", text: starter ? starter.name : "Starter" }));
-  info.appendChild(el("div", { style: "font:400 12.5px/1.4 var(--ui);color:#8A8171;margin-top:2px", text: line }));
-  row.appendChild(info);
-  row.appendChild(el("div", { style: "font:400 20px/1 var(--ui);color:#B8AC95", text: "›" }));
-  return row;
+  return wrap;
 }
 
 export function markDone(ctx, bake, stepId, backMin = 0) {

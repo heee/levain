@@ -130,11 +130,11 @@ export function renderLog(ctx) {
   wrap.appendChild(header);
 
   if (!myLog.length) {
-    wrap.appendChild(el("div", { style: "background:#FBF8F1;border:1px dashed #DDD2BC;border-radius:16px;padding:20px;color:#8A8171;font:400 13px/1.5 var(--ui)", text: "Finish a bake and it lands here with whatever you noted." }));
+    wrap.appendChild(el("div", { style: "background:#FBF8F1;border-radius:20px;padding:24px;border:1px dashed #DDD2BC;text-align:center;color:#8A8171;font:400 14px/1.5 var(--ui)", text: "Finish a bake and it lands here with whatever you noted." }));
     return wrap;
   }
   if (!myLogFiltered.length) {
-    wrap.appendChild(el("div", { style: "background:#FBF8F1;border:1px dashed #DDD2BC;border-radius:16px;padding:20px;color:#8A8171;font:400 13px/1.5 var(--ui)", text: "Nothing matches this filter." }));
+    wrap.appendChild(el("div", { style: "background:#FBF8F1;border-radius:20px;padding:24px;border:1px dashed #DDD2BC;text-align:center;color:#8A8171;font:400 14px/1.5 var(--ui)", text: "Nothing matches this filter." }));
     return wrap;
   }
 
@@ -142,7 +142,7 @@ export function renderLog(ctx) {
   myLogFiltered.forEach((e, i) => {
     const card = el("div", { style: "background:#FBF8F1;border-radius:18px;border:1px solid #EAE2D2;overflow:hidden" });
     card.appendChild(photoSlot({
-      height: i === 0 ? 196 : 128,
+      height: i === 0 ? 150 : 100,
       photo: e.photo,
       placeholder: "crust photo<br>tap to add",
       onPicked: (dataUrl) => { e.photo = dataUrl; e.updatedAt = Date.now(); ctx.persist(); ctx.render(); },
