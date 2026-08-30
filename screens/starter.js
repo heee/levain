@@ -27,10 +27,19 @@ function addStarter(ctx, acc) {
 function starterList(ctx, myStarters, acc, now) {
   const { state } = ctx;
   const wrap = el("div", { style: "padding:0 20px" });
-  wrap.appendChild(el("div", { class: "sticky-header", style: "padding-bottom:14px" }, [
+  const header = el("div", { class: "sticky-header", style: "padding-bottom:14px" });
+  const head = el("div", { style: "display:flex;align-items:flex-start;gap:12px" });
+  head.appendChild(el("div", { style: "flex:1" }, [
     el("h1", { style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0 0 6px;letter-spacing:-.01em", text: "Starter" }),
     el("div", { style: "font:400 13.5px/1.4 var(--ui);color:#8A8171", text: `${myStarters.length} starters` }),
   ]));
+  head.appendChild(el("div", {
+    style: "width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;color:#5C5447;cursor:pointer",
+    html: '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13"></path><path d="M5.5 12h13"></path></svg>',
+    onClick: () => addStarter(ctx, acc),
+  }));
+  header.appendChild(head);
+  wrap.appendChild(header);
 
   const list = el("div", { style: "display:flex;flex-direction:column;gap:10px;margin-top:6px" });
   myStarters.forEach((s) => {
@@ -46,14 +55,6 @@ function starterList(ctx, myStarters, acc, now) {
     ]));
   });
   wrap.appendChild(list);
-
-  wrap.appendChild(el("div", {
-    style: "display:flex;align-items:center;justify-content:center;gap:9px;margin-top:14px;border:1.5px solid #DDD2BC;border-radius:14px;padding:13px 0;color:#A65A2E;cursor:pointer",
-    onClick: () => addStarter(ctx, acc),
-  }, [
-    el("div", { html: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13"></path><path d="M5.5 12h13"></path></svg>' }),
-    el("span", { style: "font:600 13px/1 var(--ui)", text: "Add a starter" }),
-  ]));
 
   return wrap;
 }
