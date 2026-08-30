@@ -6,7 +6,7 @@ import { fmt, rel, tone, dayTag, brief, MIN } from "../game/schedule.js";
 import { projForBake, currentForBake, recipeFor, methodOf } from "../game/bakes.js";
 import { METHODS, IDXS } from "../game/methods.js";
 import { buildAdvice } from "../game/advice.js";
-import { starterLine } from "./starter-vm.js";
+import { starterLine, starterRise } from "./starter-vm.js";
 import { bakesFor, startersFor } from "../game/ownership.js";
 
 export function renderNow(ctx) {
@@ -172,11 +172,15 @@ function starterTeaser(ctx) {
   }
 
   myStarters.forEach((s) => {
+    const { fed, pct } = starterRise(s, state.now);
+    const atPeak = fed && pct >= 90;
     const row = el("div", {
       style: "background:#EFE7D8;border-radius:15px;padding:15px;display:flex;align-items:center;gap:13px;cursor:pointer",
       onClick: () => openStarter(s),
     });
-    row.appendChild(el("div", { style: "width:34px;height:34px;border-radius:11px;background:#E2D6BE;flex:none;display:flex;align-items:center;justify-content:center" }, [iconEl("starter", "color:#8A7A55")]));
+    row.appendChild(el("div", {
+      style: `width:34px;height:34px;border-radius:11px;background:${atPeak ? "#F2DFDA" : "#E2D6BE"};flex:none;display:flex;align-items:center;justify-content:center`,
+    }, [iconEl("starter", `color:${atPeak ? "#B03A2B" : "#8A7A55"}`)]));
     const info = el("div", { style: "flex:1" });
     info.appendChild(el("div", { style: "font:600 14px/1.3 var(--ui)", text: s.name }));
     info.appendChild(el("div", { style: "font:400 12.5px/1.4 var(--ui);color:#8A8171;margin-top:2px", text: starterLine(s, state.now) }));
