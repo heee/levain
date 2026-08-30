@@ -5,6 +5,27 @@ import { TINTS, seedRecipesFor } from "../game/seed-data.js";
 import { newId } from "../game/ids.js";
 import { bakesFor } from "../game/ownership.js";
 
+// Marks an account (and everything it owns) deleted rather than splicing it
+// out of the array — a plain removal would just get unioned back in on the
+// next sync merge (see game/merge.js), since merge only ever adds/updates by
+// id and never drops one side's records. `deleted: true` is the only state
+// that actually sticks across devices.
+function removeAccount(ctx, id) {
+  const { state } = ctx;
+  const store = state.store;
+  const now = Date.now();
+  store.accounts.forEach((a) => { if (a.id === id) { a.deleted = true; a.updatedAt = now; } });
+  store.recipes.forEach((r) => { if (r.ownerId === id) { r.deleted = true; r.updatedAt = now; } });
+  store.bakes.forEach((b) => { if (b.ownerId === id) { b.deleted = true; b.updatedAt = now; } });
+  store.starters.forEach((s) => { if (s.ownerId === id) { s.deleted = true; s.updatedAt = now; } });
+  store.log.forEach((e) => { if (e.ownerId === id) { e.deleted = true; e.updatedAt = now; } });
+  const liveIdx = store.accounts.findIndex((a) => !a.deleted);
+  state.accountIdx = liveIdx === -1 ? 0 : liveIdx;
+  state.deleteAccountArm = null;
+  ctx.persist();
+  ctx.render();
+}
+
 // iOS Safari doesn't shrink the layout viewport for the keyboard, so a
 // `position:fixed;bottom:0` sheet stays pinned to the bottom of the *full*
 // page — right behind the keyboard — instead of riding above it. The
@@ -31,14 +52,15 @@ function armKeyboardSync() {
 export function renderWelcome(ctx) {
   armKeyboardSync();
   const { state } = ctx;
-  const accounts = state.store.accounts;
+  // Index here is always the position in the *unfiltered* store.accounts —
+  // that's what state.accountIdx and every other screen indexes by — so a
+  // deleted account is excluded from `live` but its live neighbors keep
+  // their real index rather than being renumbered.
+  const live = state.store.accounts.map((account, index) => ({ account, index })).filter((x) => !x.account.deleted);
   const maxShown = isTabletViewport() ? 4 : 3;
-  const showArrows = accounts.length > maxShown;
-  const off = ((state.wOff || 0) % accounts.length + accounts.length) % accounts.length;
-  const shown = Array.from({ length: Math.min(maxShown, accounts.length) }, (_, k) => {
-    const i = (off + k) % accounts.length;
-    return { account: accounts[i], index: i };
-  });
+  const showArrows = live.length > maxShown;
+  const off = ((state.wOff || 0) % live.length + live.length) % live.length;
+  const shown = Array.from({ length: Math.min(maxShown, live.length) }, (_, k) => live[(off + k) % live.length]);
 
   const wrap = el("div", {
     // Fixed `height:100svh` (not `inset:0`/`100dvh`) deliberately: iOS Safari's
@@ -83,9 +105,17 @@ export function renderWelcome(ctx) {
       style: "display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;user-select:none;width:86px",
       onClick: () => { state.accountIdx = i; state.screen = "app"; state.tab = "now"; ctx.persist(); ctx.render(); },
     });
+    const avatarWrap = el("div", { style: "position:relative" });
     const avatar = el("div", { style: `width:64px;height:64px;border-radius:44px;background:${a.tint};display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(60,48,28,.10)` });
     avatar.appendChild(el("div", { style: "font:600 22px/1 var(--num);color:#4A4438", text: a.initial }));
-    card.appendChild(avatar);
+    avatarWrap.appendChild(avatar);
+    if (live.length > 1) {
+      avatarWrap.appendChild(el("div", {
+        style: "position:absolute;top:-3px;right:-3px;width:22px;height:22px;border-radius:11px;background:#FBF8F1;border:1px solid #E7DECC;display:flex;align-items:center;justify-content:center;color:#B0765F;box-shadow:0 2px 6px rgba(60,48,28,.14)",
+        onClick: (e) => { e.stopPropagation(); state.deleteAccountArm = a.id; ctx.render(); },
+      }, [iconEl("trash")]));
+    }
+    card.appendChild(avatarWrap);
     card.appendChild(el("div", { style: "font:600 13.5px/1 var(--ui);color:#221F19;white-space:nowrap", text: a.name }));
     const myBakes = bakesFor(state.store, a.id);
     card.appendChild(el("div", {
@@ -147,6 +177,20 @@ export function renderWelcome(ctx) {
         ctx.persist(); ctx.render();
       },
     }));
+    wrap.appendChild(sheet);
+  }
+
+  const deleteTarget = state.deleteAccountArm && state.store.accounts.find((a) => a.id === state.deleteAccountArm);
+  if (deleteTarget) {
+    const sheet = el("div", {
+      style: "position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;background:#FBF8F1;border-top:1px solid #E7DECC;border-radius:24px 24px 0 0;padding:22px 24px 34px;box-shadow:0 -14px 34px rgba(60,48,28,.12);z-index:20",
+    });
+    sheet.appendChild(el("div", { style: "font:400 21px/1 'Source Serif 4',Georgia,serif;color:#221F19;margin-bottom:12px", text: `Remove ${deleteTarget.name}?` }));
+    sheet.appendChild(el("div", { style: "font:400 13.5px/1.5 var(--ui);color:#6E6558", text: "This deletes their bakes, starter and recipes too, on every synced device. It can't be undone." }));
+    const btnRow = el("div", { style: "display:flex;gap:9px;margin-top:20px" });
+    btnRow.appendChild(el("div", { style: "flex:1;background:#F0E9DC;color:#5C5447;border-radius:11px;padding:12px 0;text-align:center;font:600 13.5px/1 var(--ui);cursor:pointer", text: "Keep", onClick: () => { state.deleteAccountArm = null; ctx.render(); } }));
+    btnRow.appendChild(el("div", { style: "flex:1;background:#B03A2B;color:#FFF;border-radius:11px;padding:12px 0;text-align:center;font:700 13.5px/1 var(--ui);cursor:pointer", text: "Remove", onClick: () => removeAccount(ctx, deleteTarget.id) }));
+    sheet.appendChild(btnRow);
     wrap.appendChild(sheet);
   }
 
