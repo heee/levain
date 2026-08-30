@@ -30,10 +30,13 @@ export function renderNow(ctx) {
   const head = el("div", { class: "sticky-header", style: "display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:20px" });
   head.appendChild(el("h1", { style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0;letter-spacing:-.01em", text: "Today" }));
   const headRight = el("div", { style: "display:flex;align-items:center;gap:10px" });
-  headRight.appendChild(el("div", {
-    style: "font:400 13px/1.4 var(--ui);color:#8A8171;text-align:right;white-space:nowrap",
-    text: `${myBakes.length} bakes going · ${myBakes.reduce((a, b) => a + b.loaves, 0)} loaves`,
-  }));
+  const totalLoaves = myBakes.reduce((a, b) => a + b.loaves, 0);
+  if (myBakes.length > 0 && totalLoaves > 0) {
+    headRight.appendChild(el("div", {
+      style: "font:400 13px/1.4 var(--ui);color:#8A8171;text-align:right;white-space:nowrap",
+      text: `${myBakes.length} bakes going · ${totalLoaves} loaves`,
+    }));
+  }
   const avatar = el("div", {
     style: `width:30px;height:30px;flex:none;border-radius:20px;background:${acc.tint};display:flex;align-items:center;justify-content:center;cursor:pointer`,
     onClick: () => { state.screen = "welcome"; ctx.render(); },
