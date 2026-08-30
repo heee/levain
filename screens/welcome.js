@@ -41,7 +41,16 @@ export function renderWelcome(ctx) {
   });
 
   const wrap = el("div", {
-    style: "position:fixed;inset:0;z-index:5;background:radial-gradient(120% 68% at 50% 20%,#F7F2E9 0%,#F2EDE3 52%,#EEE8DC 100%);display:flex;flex-direction:column;align-items:center;padding:0 30px 44px;box-sizing:border-box;overflow-y:auto",
+    // Fixed `height:100svh` (not `inset:0`/`100dvh`) deliberately: iOS Safari's
+    // address bar auto-collapses a moment after load, growing the real
+    // viewport. inset:0 tracks that growth live, and since this box centers
+    // its content with two equal flex spacers, the extra height gets split
+    // top and bottom — nudging the loaf/heading down mid-load, which reads as
+    // the screen "scrolling". `svh` is measured with browser chrome fully
+    // shown and doesn't change when the chrome hides, so the box's height
+    // (and the centered content inside it) stays put; any newly revealed
+    // space at the bottom just sits behind the tab bar, unseen.
+    style: "position:fixed;top:0;left:0;right:0;height:100vh;height:100svh;z-index:5;background:radial-gradient(120% 68% at 50% 20%,#F7F2E9 0%,#F2EDE3 52%,#EEE8DC 100%);display:flex;flex-direction:column;align-items:center;padding:0 30px 44px;box-sizing:border-box;overflow-y:auto",
   });
 
   wrap.appendChild(el("div", { style: "flex:1;min-height:40px" }));
