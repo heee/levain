@@ -101,14 +101,16 @@ function newBakeMenu(ctx) {
   return menu;
 }
 
-export function startBakeFromRecipe(ctx, recipeId) {
+export function startBakeFromRecipe(ctx, recipeId, opts = {}) {
   const { state } = ctx;
   const store = state.store;
   const acc = store.accounts[state.accountIdx] || store.accounts[0];
   const r = recipeFor(store, recipeId);
   if (!r) return;
   const at = state.startAbs != null ? state.startAbs : state.now + (state.startPick || 0) * MIN;
-  const nb = { id: newId("b"), name: r.name, recipe: r.id, loaves: 1, variants: [], done: {}, startAt: at, ownerId: acc.id, updatedAt: Date.now(), deleted: false };
+  const steps = stepsForBake({ recipe: r.id, done: {} }, store);
+  const skipFeed = opts.skipFeed && steps[0] && steps[0].id === "feed";
+  const nb = { id: newId("b"), name: r.name, recipe: r.id, loaves: 1, variants: [], done: skipFeed ? { feed: at } : {}, startAt: at, ownerId: acc.id, updatedAt: Date.now(), deleted: false };
   store.bakes.push(nb);
   state.idx = bakesFor(store, acc.id).length - 1;
   state.tab = "bakes"; state.view = "timeline"; state.newBakeOpen = false; state.openRecipeId = null; state.editing = false; state.scale = 1;

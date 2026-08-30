@@ -94,7 +94,7 @@ export function renderRecipes(ctx) {
     }
     list.appendChild(el("div", {
       style: "background:#FBF8F1;border-radius:17px;padding:16px;cursor:pointer;border:1px solid #EAE2D2",
-      onClick: () => { state.openRecipeId = r.id; state.scale = 1; state.ingredientsCollapsed = false; ctx.render(); },
+      onClick: () => { state.openRecipeId = r.id; state.scale = 1; state.ingredientsCollapsed = false; state.starterReady = false; ctx.render(); },
     }, [
       el("div", { style: "display:flex;align-items:baseline;gap:10px" }, [
         el("div", { style: "flex:1;font:400 19px/1.2 'Source Serif 4',Georgia,serif", text: r.name }),
@@ -117,7 +117,7 @@ export function renderRecipes(ctx) {
       discardedSeed.forEach((r) => {
         dList.appendChild(el("div", {
           style: "background:#F5F0E5;border-radius:17px;padding:16px;cursor:pointer;border:1.5px dashed #D8CDB8;opacity:.6",
-          onClick: () => { state.openRecipeId = r.id; state.scale = 1; state.ingredientsCollapsed = false; ctx.render(); },
+          onClick: () => { state.openRecipeId = r.id; state.scale = 1; state.ingredientsCollapsed = false; state.starterReady = false; ctx.render(); },
         }, [
           el("div", { style: "font:400 19px/1.2 'Source Serif 4',Georgia,serif;color:#8A8171", text: r.name }),
           el("div", { style: "font:400 12.5px/1.45 var(--ui);color:#A79C8A;margin-top:6px", text: r.sub }),
@@ -297,7 +297,7 @@ function recipeDetail(ctx, recipe) {
     topRow.appendChild(el("div", {
       style: "width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;color:#A65A2E;cursor:pointer;flex:none",
       html: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 18.4a8.6 8.6 0 0 1 17.2 0z"></path><path d="M9.4 15.4l3-3.4"></path><path d="M13 16.2l2.4-2.7"></path><path d="M8 6.4c0-1.2 1-1.6 1-2.8"></path><path d="M12 6c0-1.4 1-1.8 1-3.2"></path><path d="M16 6.4c0-1.2 1-1.6 1-2.8"></path></svg>',
-      onClick: () => startBakeFromRecipe(ctx, recipe.id),
+      onClick: () => startBakeFromRecipe(ctx, recipe.id, { skipFeed: state.starterReady }),
     }));
   }
   wrap.appendChild(topRow);
@@ -352,6 +352,9 @@ function recipeDetail(ctx, recipe) {
     wrap.appendChild(el("div", { style: "font:600 11px/1 var(--num);letter-spacing:.14em;text-transform:uppercase;color:#A79C8A;margin:26px 0 11px", text: "When to start" }));
     wrap.appendChild(startTimeGrid(ctx, recipe));
     wrap.appendChild(el("div", { style: "font:400 12px/1.5 var(--ui);color:#A79C8A;margin-top:9px", text: startAnchorLabel(state, now) }));
+    if (stepsForBake({ recipe: recipe.id, done: {} }, store)[0]?.id === "feed") {
+      wrap.appendChild(starterReadyToggle(ctx));
+    }
 
     wrap.appendChild(el("div", { style: "font:600 11px/1 var(--num);letter-spacing:.14em;text-transform:uppercase;color:#A79C8A;margin:26px 0 11px", text: "Steps" }));
     wrap.appendChild(methodStepsCard(ctx, recipe));
@@ -476,22 +479,44 @@ function startAnchorLabel(state, now) {
   return !isCustomActive ? "Step times below assume you start now." : `Step times below assume a ${fmt(anchorAt)}${dayTag(anchorAt, now)} start.`;
 }
 
+function starterReadyToggle(ctx) {
+  const { state } = ctx;
+  const on = !!state.starterReady;
+  const row = el("div", {
+    style: "display:flex;align-items:center;gap:12px;margin-top:9px;background:#FBF8F1;border:1px solid #EAE2D2;border-radius:15px;padding:13px 15px;cursor:pointer",
+    onClick: () => { state.starterReady = !state.starterReady; ctx.render(); },
+  });
+  const textCol = el("div", { style: "flex:1;min-width:0" });
+  textCol.appendChild(el("div", { style: "font:600 14px/1.3 var(--ui);color:#221F19", text: "Starter ready" }));
+  textCol.appendChild(el("div", { style: "font:400 12px/1.4 var(--ui);color:#8A8171;margin-top:3px", text: "Already at peak — skip the feed and start from Mix." }));
+  row.appendChild(textCol);
+  row.appendChild(switchEl(on));
+  return row;
+}
+
+function switchEl(on) {
+  const track = el("div", { style: `flex:none;width:44px;height:26px;border-radius:14px;background:${on ? "#A65A2E" : "#E4DAC6"};position:relative;box-sizing:border-box` });
+  track.appendChild(el("div", { style: `position:absolute;top:2px;left:${on ? "20px" : "2px"};width:22px;height:22px;border-radius:22px;background:#FFF;box-shadow:0 1px 3px rgba(0,0,0,.2)` }));
+  return track;
+}
+
 function startTimeGrid(ctx, recipe) {
   const { state } = ctx;
   const now = state.now;
   const SLEEP_START = 21.5, SLEEP_END = 6;
   const probeSteps = stepsForBake({ recipe: recipe.id, done: {} }, ctx.state.store);
+  const skipFeed = state.starterReady && probeSteps[0] && probeSteps[0].id === "feed";
 
   const candidatesRaw = [];
   for (let d = 0; d <= 720; d += 30) {
     const at = now + d * MIN;
-    const pr = proj(probeSteps, {}, now, at);
+    const pr = proj(probeSteps, skipFeed ? { feed: at } : {}, now, at);
     const wake = pr.filter((x) => {
-      if (!x.step.act) return false;
+      if (x.isDone || !x.step.act) return false;
       const from = x.at - x.step.act * MIN;
       for (let t = from; t <= x.at; t += 15 * MIN) if (inSleep(t, SLEEP_START, SLEEP_END)) return true;
       return inSleep(x.at, SLEEP_START, SLEEP_END);
-    }).length + (inSleep(at, SLEEP_START, SLEEP_END) ? 1 : 0);
+    }).length + (!skipFeed && inSleep(at, SLEEP_START, SLEEP_END) ? 1 : 0);
     candidatesRaw.push({ d, at, wake, out: pr[pr.length - 1].at });
   }
   const clean = candidatesRaw.filter((c) => c.wake === 0);
@@ -636,21 +661,23 @@ function methodStepsCard(ctx, recipe) {
   const editing = state.editing;
   const steps = stepsForBake({ recipe: recipe.id, done: {} }, state.store);
   const anchorAt = anchorFor(state, now);
-  const projAt = proj(steps, {}, now, anchorAt).map((x) => x.at);
+  const skipFeed = state.starterReady && steps[0] && steps[0].id === "feed";
+  const projAt = proj(steps, skipFeed ? { feed: anchorAt } : {}, now, anchorAt).map((x) => x.at);
   recipe.stepOverrides = recipe.stepOverrides || {};
 
   const box = el("div", { style: "background:#FBF8F1;border-radius:18px;border:1px solid #EAE2D2;overflow:hidden" });
   steps.forEach((s, i) => {
+    const skipped = skipFeed && s.id === "feed";
     // Editing needs the label/hint inputs at a real (16px+, so iOS doesn't
     // zoom on focus) font size, which no longer fits alongside the duration
     // steppers on one line -- let the row wrap so those steppers drop to
     // their own line under the inputs instead of clipping the text.
-    const row = el("div", { style: `display:flex;gap:12px;padding:14px 16px;border-top:1px solid #EFE8DA${editing ? ";flex-wrap:wrap" : ""}` });
+    const row = el("div", { style: `display:flex;gap:12px;padding:14px 16px;border-top:1px solid #EFE8DA${editing ? ";flex-wrap:wrap" : ""}${skipped ? ";opacity:.5" : ""}` });
     row.appendChild(el("div", { style: "width:20px;height:20px;border-radius:20px;background:#F0E9DC;color:#8A8171;display:flex;align-items:center;justify-content:center;font:500 11px/1 var(--num);flex:none;margin-top:1px", text: String(i + 1) }));
     const body = el("div", { style: `flex:1;min-width:0${editing ? ";flex-basis:100%" : ""}` });
     if (!editing) {
       body.appendChild(el("div", { style: "font:500 14.5px/1.3 var(--ui);color:#221F19", text: s.label }));
-      body.appendChild(el("div", { style: "font:400 12.5px/1.45 var(--ui);color:#8A8171;margin-top:4px", text: s.hint }));
+      body.appendChild(el("div", { style: "font:400 12.5px/1.45 var(--ui);color:#8A8171;margin-top:4px", text: skipped ? "Starter's already at peak — skipped" : s.hint }));
       body.appendChild(el("div", { style: `font:400 11.5px/1.3 var(--ui);margin-top:6px;color:${s.act ? "#A65A2E" : "#A79C8A"}`, text: s.act ? s.act + " min hands-on" : "no hands-on time" }));
     } else {
       const labelI = el("input", { value: s.label, style: "width:100%;box-sizing:border-box;font:500 16px/1.3 var(--ui);color:#221F19;background:#F5F0E5;border:1px solid #E4DAC6;border-radius:9px;padding:8px 10px;outline:none" });

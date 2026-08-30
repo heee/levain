@@ -78,15 +78,23 @@ export function renderNow(ctx) {
   relCol.appendChild(el("div", { style: `font:500 32px/1.05 var(--num);letter-spacing:-.02em;white-space:nowrap;color:${hero.tone.c}`, text: rel(hero.c.at, now) }));
   relCol.appendChild(el("div", { style: "font:400 12px/1.3 var(--ui);color:#A79C8A;margin-top:7px", text: (hero.late ? "was due " : "done ") + fmt(hero.c.at) + dayTag(hero.c.at, now) }));
   bottomRow.appendChild(relCol);
-  bottomRow.appendChild(el("div", {
+  const btnGroup = el("div", { style: "display:flex;align-items:center;gap:8px;flex:none" });
+  btnGroup.appendChild(el("div", {
     style: "border-radius:12px;height:38px;width:38px;box-sizing:border-box;border:1.5px solid #D9CFBB;color:#5C5447;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none",
     onClick: () => { state.tab = "bakes"; state.view = "timeline"; state.idx = myBakes.findIndex((x) => x.id === hero.b.id); ctx.render(); },
   }, [iconEl("view")]));
-  bottomRow.appendChild(el("div", {
+  if (hero.late) {
+    btnGroup.appendChild(el("div", {
+      style: "border-radius:12px;height:38px;width:38px;box-sizing:border-box;border:1.5px solid #D9CFBB;color:#5C5447;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none",
+      onClick: () => { markDoneAt(ctx, hero.b, hero.c.step.id, hero.c.at); },
+    }, [iconEl("clock")]));
+  }
+  btnGroup.appendChild(el("div", {
     style: "border-radius:12px;height:38px;width:38px;box-sizing:border-box;background:#A65A2E;color:#FFF;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none",
     html: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6l4.4 4.4L19 7.4"></path></svg>',
     onClick: () => { markDone(ctx, hero.b, hero.c.step.id); },
   }));
+  bottomRow.appendChild(btnGroup);
   heroCard.appendChild(bottomRow);
   wrap.appendChild(heroCard);
 
