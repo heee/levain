@@ -16,6 +16,7 @@ html, body {
   color: var(--ink);
   height: 100%;
   overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
 body { -webkit-font-smoothing: antialiased; }

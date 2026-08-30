@@ -53,6 +53,7 @@ export const ICONS = {
   view: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
   clock: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.4V12l3.4 2"></path></svg>',
   rotate: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="16" rx="2"></rect><path d="M9.5 5.5h5"></path><path d="M18.5 15a6.2 6.2 0 0 1-10.9 4"></path><path d="M20.5 12.5l-2 2.5-2.3-2"></path></svg>',
+  filter: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16"></path><path d="M7.5 12h9"></path><path d="M10.5 18.5h3"></path></svg>',
 };
 
 export function iconEl(name, extraStyle = "") {
