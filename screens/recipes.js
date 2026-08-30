@@ -11,10 +11,11 @@ import { recipesFor } from "../game/ownership.js";
 import { newId } from "../game/ids.js";
 
 // Log entries only started carrying `recipe` recently (see finishBake in
-// bakes.js) — older/seeded log entries predate the link and simply won't
-// count toward any recipe's "times baked" or "last baked".
-function loggedBakesFor(store, recipeId) {
-  return store.log.filter((e) => !e.deleted && e.recipe === recipeId);
+// bakes.js) — older/seeded log entries predate the link, so fall back to
+// matching by name (the log always carries the bake's name) for those.
+function loggedBakesFor(store, recipe) {
+  return store.log.filter((e) => !e.deleted &&
+    (e.recipe ? e.recipe === recipe.id : e.name === recipe.name));
 }
 
 function abbreviateSource(url) {
@@ -79,7 +80,7 @@ export function renderRecipes(ctx) {
     const fl = r.rows.filter((x) => /flour|wheat|rye|semolina/i.test(x[0])).reduce((a, x) => a + x[1], 0);
     const authored = liq && liq[2] && liq[2] !== "—" ? liq[2] : null;
     const hydration = authored || (liq && fl ? Math.round((liq[1] / fl) * 100) + "%" : "—");
-    const bakedCount = loggedBakesFor(store, r.id).length;
+    const bakedCount = loggedBakesFor(store, r).length;
     const badge = el("div", { style: "display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none" }, [
       el("div", { style: "display:flex;align-items:center;gap:4px" }, [
         iconEl("dropSmall", "color:#A79C8A"),
@@ -360,7 +361,7 @@ function recipeDetail(ctx, recipe) {
     wrap.appendChild(methodStepsCard(ctx, recipe));
     wrap.appendChild(el("div", { style: "font:400 12px/1.5 var(--ui);color:#A79C8A;margin-top:11px", text: "Durations feed every projection. Change one here and the running bakes on this recipe shift with it." }));
 
-    const logged = loggedBakesFor(store, recipe.id);
+    const logged = loggedBakesFor(store, recipe);
     if (logged.length) {
       const latest = logged.reduce((a, b) => ((b.at || 0) > (a.at || 0) ? b : a));
       const stars = (latest.stars.match(/★/g) || []).length;
