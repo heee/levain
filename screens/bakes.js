@@ -5,7 +5,7 @@ import { el, iconEl } from "./shared-ui.js";
 import { fmt, rel, tone, dayTag, brief, human, MIN } from "../game/schedule.js";
 import { projForBake, currentForBake, recipeFor, stepsForBake } from "../game/bakes.js";
 import { METHOD_LABELS } from "../game/methods.js";
-import { markDone, clearDone } from "./now.js";
+import { markDone, markDoneAt, clearDone } from "./now.js";
 import { bakesFor, recipesFor } from "../game/ownership.js";
 import { newId } from "../game/ids.js";
 
@@ -205,18 +205,17 @@ function timelineView(ctx) {
         html: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6l4.4 4.4L19 7.4"></path></svg>',
         onClick: () => markDone(ctx, bake, x.step.id),
       }));
-      btnRow.appendChild(el("div", { style: "background:#F0E9DC;color:#5C5447;border-radius:11px;padding:11px 13px;font:600 13.5px/1 var(--ui);cursor:pointer", text: "−30m", onClick: () => markDone(ctx, bake, x.step.id, 30) }));
-      btnRow.appendChild(el("div", { style: "background:#F0E9DC;color:#5C5447;border-radius:11px;padding:11px 13px;font:600 13.5px/1 var(--ui);cursor:pointer", text: "−1h", onClick: () => markDone(ctx, bake, x.step.id, 60) }));
+      btnRow.appendChild(el("div", {
+        style: "background:#F0E9DC;color:#5C5447;border-radius:11px;width:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none",
+        onClick: () => toggleDonePicker(ctx, bake, x.step.id),
+      }, [iconEl("clock")]));
       btnRow.appendChild(el("div", {
         style: "background:#F0E9DC;color:#5C5447;border-radius:11px;padding:0 13px;display:flex;align-items:center;gap:7px;cursor:pointer;flex:none",
         onClick: () => speakTimer(ctx, bake, x, p),
       }, [iconEl("alexa"), el("div", { style: "font:600 13.5px/1 var(--ui)", text: "Alexa" })]));
       box.appendChild(btnRow);
-      if (state.spokenFor === bake.id + ":" + x.step.id) {
-        const spoken = el("div", { style: "margin-top:11px;background:#F3EDE0;border:1px solid #E4DAC6;border-radius:12px;padding:12px 13px" });
-        spoken.appendChild(el("div", { style: "font:600 10.5px/1 var(--num);letter-spacing:.1em;text-transform:uppercase;color:#A79C8A;margin-bottom:7px", text: "Spoken out loud" }));
-        spoken.appendChild(el("div", { style: "font:400 14px/1.45 'Source Serif 4',Georgia,serif;color:#221F19", text: state.spokenPhrase }));
-        box.appendChild(spoken);
+      if (state.doneAtPickerFor === bake.id + ":" + x.step.id) {
+        box.appendChild(donePickerPanel(ctx, bake, x));
       }
       body.appendChild(box);
     }
@@ -252,9 +251,75 @@ function speakTimer(ctx, bake, x, p) {
     const sp = window.speechSynthesis;
     if (sp) { sp.cancel(); const u = new SpeechSynthesisUtterance(phrase); u.volume = 1; u.rate = 0.95; sp.speak(u); }
   } catch (e) {}
-  ctx.state.spokenFor = bake.id + ":" + x.step.id;
-  ctx.state.spokenPhrase = phrase;
+}
+
+// Opens/closes the "when was this done" time picker for a step, seeded to
+// the current time so the common case (marking it done right now, just
+// backdated slightly) needs the fewest taps.
+function toggleDonePicker(ctx, bake, stepId) {
+  const { state } = ctx;
+  const key = bake.id + ":" + stepId;
+  if (state.doneAtPickerFor === key) { state.doneAtPickerFor = null; ctx.render(); return; }
+  const d = new Date(state.now);
+  let h = d.getHours();
+  const ap = h >= 12 ? "PM" : "AM";
+  let h12 = h % 12; if (h12 === 0) h12 = 12;
+  const m = Math.round(d.getMinutes() / 15) * 15 % 60;
+  state.doneAtPickerFor = key;
+  state.doneAtDay = "today";
+  state.doneAtH = h12; state.doneAtM = m; state.doneAtAP = ap;
   ctx.render();
+}
+
+function donePickerPanel(ctx, bake, x) {
+  const { state } = ctx;
+  const panel = el("div", { style: "margin-top:11px;background:#F3EDE0;border:1px solid #E4DAC6;border-radius:14px;padding:13px" });
+  panel.appendChild(el("div", { style: "font:600 10.5px/1 var(--num);letter-spacing:.1em;text-transform:uppercase;color:#A79C8A;margin-bottom:10px", text: "When was this done?" }));
+
+  const dayRow = el("div", { style: "display:flex;background:#E7DECC;border-radius:10px;padding:3px;margin-bottom:10px" });
+  [["today", "Today"], ["yesterday", "Yesterday"]].forEach(([id, label]) => {
+    const active = (state.doneAtDay || "today") === id;
+    dayRow.appendChild(el("div", {
+      style: `flex:1;text-align:center;padding:7px 0;border-radius:8px;font:600 12.5px/1 var(--ui);cursor:pointer;background:${active ? "#FBF8F1" : "transparent"};color:${active ? "#221F19" : "#8A8171"}`,
+      text: label,
+      onClick: () => { state.doneAtDay = id; ctx.render(); },
+    }));
+  });
+  panel.appendChild(dayRow);
+
+  const cols = el("div", { style: "display:flex;gap:6px;height:112px" });
+  const col = (list, cur, fmtFn, onPick) => {
+    const c = el("div", { style: "flex:1;overflow-y:auto;border-radius:10px;background:#FBF8F1" });
+    list.forEach((v) => {
+      const sel = v === cur;
+      c.appendChild(el("div", {
+        style: `padding:7px 0;text-align:center;font:${sel ? "600" : "400"} 13.5px/1.4 var(--num);color:${sel ? "#221F19" : "#8A8171"};cursor:pointer;background:${sel ? "#E7DECC" : "transparent"}`,
+        text: fmtFn(v),
+        onClick: () => onPick(v),
+      }));
+    });
+    return c;
+  };
+  cols.appendChild(col(Array.from({ length: 12 }, (_, i) => i + 1), state.doneAtH, String, (h) => { state.doneAtH = h; ctx.render(); }));
+  cols.appendChild(col([0, 15, 30, 45], state.doneAtM, (m) => String(m).padStart(2, "0"), (m) => { state.doneAtM = m; ctx.render(); }));
+  const ampmCol = col(["AM", "PM"], state.doneAtAP, String, (ap) => { state.doneAtAP = ap; ctx.render(); });
+  ampmCol.style.flex = ".7";
+  cols.appendChild(ampmCol);
+  panel.appendChild(cols);
+
+  panel.appendChild(el("div", {
+    style: "margin-top:12px;text-align:center;background:#A65A2E;color:#FFF;border-radius:11px;padding:11px 0;font:700 13px/1 var(--ui);cursor:pointer",
+    text: "Set",
+    onClick: () => {
+      const base = state.doneAtDay === "yesterday" ? state.now - 24 * 60 * MIN : state.now;
+      const d = new Date(base);
+      let h = state.doneAtH % 12; if (state.doneAtAP === "PM") h += 12;
+      d.setHours(h, state.doneAtM, 0, 0);
+      state.doneAtPickerFor = null;
+      markDoneAt(ctx, bake, x.step.id, d.getTime());
+    },
+  }));
+  return panel;
 }
 
 export function dayView(ctx) {

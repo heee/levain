@@ -72,7 +72,7 @@ export function renderNow(ctx) {
   const bottomRow = el("div", { style: "display:flex;align-items:center;gap:12px" });
   const relCol = el("div", { style: "flex:1;min-width:0" });
   relCol.appendChild(el("div", { style: `font:500 32px/1.05 var(--num);letter-spacing:-.02em;white-space:nowrap;color:${hero.tone.c}`, text: rel(hero.c.at, now) }));
-  relCol.appendChild(el("div", { style: "font:400 12px/1.3 var(--ui);color:#A79C8A;margin-top:7px", text: (hero.late ? "was due " : "due ") + fmt(hero.c.at) + dayTag(hero.c.at, now) }));
+  relCol.appendChild(el("div", { style: "font:400 12px/1.3 var(--ui);color:#A79C8A;margin-top:7px", text: (hero.late ? "was due " : "done ") + fmt(hero.c.at) + dayTag(hero.c.at, now) }));
   bottomRow.appendChild(relCol);
   bottomRow.appendChild(el("div", {
     style: "border-radius:12px;height:38px;width:38px;box-sizing:border-box;border:1.5px solid #D9CFBB;color:#5C5447;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none",
@@ -159,6 +159,14 @@ function starterTeaser(ctx) {
 export function markDone(ctx, bake, stepId, backMin = 0) {
   const { state } = ctx;
   bake.done = { ...(bake.done || {}), [stepId]: Date.now() - backMin * MIN };
+  bake.updatedAt = Date.now();
+  ctx.persist();
+  ctx.render();
+}
+
+export function markDoneAt(ctx, bake, stepId, atMs) {
+  const { state } = ctx;
+  bake.done = { ...(bake.done || {}), [stepId]: atMs };
   bake.updatedAt = Date.now();
   ctx.persist();
   ctx.render();

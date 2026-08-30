@@ -43,7 +43,7 @@ export function rel(ms, now) {
   const s = a < 60 ? a + "m" : Math.floor(a / 60) + "h " + (a % 60) + "m";
   if (d <= -1) return s + " late";
   if (d <= 1) return "now";
-  return "in " + s;
+  return "for " + s;
 }
 
 export function ago(ms, now) {
