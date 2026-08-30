@@ -75,10 +75,9 @@ export function renderNow(ctx) {
   relCol.appendChild(el("div", { style: "font:400 12px/1.3 var(--ui);color:#A79C8A;margin-top:7px", text: (hero.late ? "was due " : "due ") + fmt(hero.c.at) + dayTag(hero.c.at, now) }));
   bottomRow.appendChild(relCol);
   bottomRow.appendChild(el("div", {
-    style: "background:#F0E9DC;color:#5C5447;border-radius:12px;padding:12px 15px;font:600 14px/1 var(--ui);white-space:nowrap;cursor:pointer;flex:none",
-    text: "Open",
+    style: "border-radius:12px;height:38px;width:38px;box-sizing:border-box;border:1.5px solid #D9CFBB;color:#5C5447;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none",
     onClick: () => { state.tab = "bakes"; state.view = "timeline"; state.idx = myBakes.findIndex((x) => x.id === hero.b.id); ctx.render(); },
-  }));
+  }, [iconEl("view")]));
   bottomRow.appendChild(el("div", {
     style: "border-radius:12px;height:38px;width:38px;box-sizing:border-box;background:#A65A2E;color:#FFF;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none",
     html: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6l4.4 4.4L19 7.4"></path></svg>',
