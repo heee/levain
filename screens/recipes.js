@@ -315,7 +315,8 @@ function ingredientsCard(ctx, recipe) {
     if (!editing) {
       const r = el("div", { style: "display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid #EFE8DA" });
       r.appendChild(el("div", { style: "flex:1;font:400 14.5px/1.3 var(--ui);color:#3A3529", text: row[0] }));
-      r.appendChild(el("div", { style: "font:400 11.5px/1 var(--num);color:#B0A692;min-width:44px;text-align:right", text: row[2] }));
+      const display = row[2] && row[2] !== "—" ? row[2] : Math.round(row[1] * sc) + " g";
+      r.appendChild(el("div", { style: "font:400 11.5px/1 var(--num);color:#B0A692;min-width:44px;text-align:right", text: display }));
       box.appendChild(r);
       return;
     }
