@@ -33,7 +33,7 @@ export function createJsonStorage(backing) {
   };
 }
 
-import { seedAccounts, seedRecipesFor, seedBakes, seedStarters, seedLog } from "./game/seed-data.js";
+import { seedAccounts, seedRecipesFor, seedBakes, seedStarters, seedLog, SEED_RECIPE_IDS } from "./game/seed-data.js";
 import { newId } from "./game/ids.js";
 
 export function defaultStore() {
@@ -91,6 +91,17 @@ export function normalizeStore(raw) {
     seedRecipesFor(a.id).forEach((seedRecipe) => {
       if (!recipes.some((r) => r.id === seedRecipe.id)) recipes = recipes.concat([seedRecipe]);
     });
+  });
+  // `creator`/`source` postdate a lot of already-persisted recipes. A
+  // recipe whose id is `<seed base id>-<accountId>` was shipped by Levain
+  // (base ids never contain a dash, so the prefix check is unambiguous);
+  // anything else missing a creator was written by whoever owns it.
+  recipes = recipes.map((r) => {
+    if (r.creator) return r;
+    const isSeed = SEED_RECIPE_IDS.some((base) => r.id === base + "-" + r.ownerId);
+    if (isSeed) return { ...r, creator: "Levain", source: r.source ?? null };
+    const owner = accounts.find((a) => a.id === r.ownerId);
+    return { ...r, creator: (owner && owner.name) || "You", source: r.source ?? null };
   });
   return {
     accounts,

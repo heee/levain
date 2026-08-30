@@ -77,7 +77,11 @@ function persist() {
 // dead detail screen on screen.
 function revalidateOpenReferences() {
   const store = state.store;
-  if (state.openRecipeId && !store.recipes.some((r) => r.id === state.openRecipeId && !r.deleted)) {
+  // A discarded (deleted) pre-seeded recipe stays viewable — its detail
+  // screen shows a "Restore" banner instead of the normal actions — so only
+  // bounce back when the recipe is gone outright or was a real delete of a
+  // baker's own recipe (see the "Discard scope" decision in recipes.js).
+  if (state.openRecipeId && !store.recipes.some((r) => r.id === state.openRecipeId && (!r.deleted || r.creator === "Levain"))) {
     state.openRecipeId = null;
     state.editing = false;
   }

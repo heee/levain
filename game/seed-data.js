@@ -34,40 +34,52 @@ export function seedAccounts() {
   ];
 }
 
+// Every seed recipe is attributed to "Levain" (see recipe.creator below) so
+// the UI can tell a pre-seeded recipe apart from one a baker wrote — that
+// distinction is what lets a deleted seed recipe be archived (hidden, but
+// recoverable from "Display discarded recipes") instead of gone for good,
+// while a baker's own deleted recipe is gone like before. `source` links
+// back to the real recipe a seed was ported from, where one exists; `null`
+// for the original made-up demo recipes that were never real posts.
 export function seedRecipes() {
   return [
     { id: "country", name: "Beginner's Sourdough", sub: "The everyday one. All-purpose, no fuss.", method: "sourdough",
       rows: [["All-purpose flour", 475, "100%"], ["Water", 325, "68%"], ["Active starter", 100, "21%"], ["Salt", 10, "2.1%"]],
-      last: "Sunday — rated 4, best crumb yet." },
+      creator: "Levain", source: null },
     { id: "rye", name: "Rye 20%", sub: "Denser, darker, ferments faster than you expect.", method: "sourdough",
       rows: [["Bread flour", 380, "80%"], ["Dark rye", 95, "20%"], ["Water", 340, "72%"], ["Active starter", 100, "21%"], ["Salt", 10, "2.1%"]],
-      last: "Two weeks ago — rated 3, under-proofed." },
+      creator: "Levain", source: null },
     { id: "seeded", name: "Seeded Whole Wheat", sub: "Soaker of sesame, flax and poppy folded in at the second fold.", method: "sourdough",
       rows: [["Bread flour", 330, "70%"], ["Whole wheat", 145, "30%"], ["Water", 350, "74%"], ["Active starter", 100, "21%"], ["Salt", 10, "2.1%"], ["Seed soaker", 60, "13%"]],
-      last: "Last month — rated 5." },
+      creator: "Levain", source: null },
     { id: "cheddar", name: "Jalapeño Cheddar", sub: "Add-ins go in at shaping so they don't tear the gluten.", method: "sourdough",
       rows: [["Bread flour", 475, "100%"], ["Water", 320, "67%"], ["Active starter", 100, "21%"], ["Salt", 10, "2.1%"], ["Sharp cheddar, cubed", 90, "19%"], ["Jalapeño, diced", 40, "8%"]],
-      last: "Never — this is its first outing." },
+      creator: "Levain", source: null },
     { id: "brioche", name: "Brioche", sub: "Kneaded and enriched. Hands-on in bursts, unlike the sourdough.", method: "kneaded",
       rows: [["Bread flour", 500, "100%"], ["Whole milk", 150, "30%"], ["Eggs", 150, "30%"], ["Butter, soft", 125, "25%"], ["Sugar", 55, "11%"], ["Levain", 80, "16%"], ["Salt", 10, "2%"]],
-      last: "Three weeks ago — rated 4." },
+      creator: "Levain", source: null },
     { id: "bagels", name: "Bagels", sub: "Stiff dough, overnight fridge, boiled before baking.", method: "bagels",
       rows: [["Bread flour", 600, "100%"], ["Water", 330, "55%"], ["Active starter", 120, "20%"], ["Barley malt syrup", 20, "3%"], ["Salt", 12, "2%"]],
-      last: "Last weekend — rated 5." },
+      creator: "Levain", source: null },
     { id: "pizza", name: "Pizza dough", sub: "Long cold ferment, four balls.", method: "pizza",
       rows: [["00 flour", 600, "100%"], ["Water", 420, "70%"], ["Active starter", 90, "15%"], ["Salt", 14, "2.3%"]],
-      last: "Friday — rated 4." },
+      creator: "Levain", source: null },
     { id: "muffins", name: "Discard muffins", sub: "Whatever discard is in the jar. Half an hour, start to finish.", method: "discard",
       rows: [["Sourdough discard", 200, "—"], ["Flour", 180, "—"], ["Sugar", 90, "—"], ["Butter, melted", 85, "—"], ["Egg", 50, "—"], ["Blueberries", 120, "—"]],
-      last: "Yesterday — rated 3, a bit flat." },
+      creator: "Levain", source: null },
     { id: "popovers", name: "Sourdough Popovers", sub: "Milk, eggs and discard whisked thin — puffs hollow and golden in a hot oven.", method: "discard",
       rows: [["Milk", 227, "—"], ["Eggs (3 large)", 150, "—"], ["Sourdough starter", 113, "—"], ["Flour", 120, "—"], ["Salt", 5, "—"]],
-      last: "Never — this is its first outing." },
+      creator: "Levain", source: "https://www.kingarthurbaking.com/recipes/sourdough-popovers-recipe" },
     { id: "bananabread", name: "Sourdough Banana Bread", sub: "Discard, mashed banana and honey — a loaf pan, not a banneton.", method: "discard",
       rows: [["Butter", 113, "—"], ["Brown sugar", 142, "—"], ["Mashed banana", 397, "—"], ["Honey", 85, "—"], ["Eggs (2 large)", 100, "—"], ["Sourdough starter", 113, "—"], ["Flour", 240, "—"], ["Chopped nuts", 85, "—"]],
-      last: "Never — this is its first outing." },
+      creator: "Levain", source: "https://www.kingarthurbaking.com/recipes/sourdough-banana-bread-recipe" },
   ];
 }
+
+// Base ids of every recipe Levain ships out of the box, used to tell a
+// pre-seeded recipe apart from a baker's own after the id gets suffixed
+// with an account id in seedRecipesFor (see storage.js's creator backfill).
+export const SEED_RECIPE_IDS = seedRecipes().map((r) => r.id);
 
 // Every baker gets their own copy of the starter recipe set (not a shared
 // one — see game/ownership.js), so ids must be unique per copy.

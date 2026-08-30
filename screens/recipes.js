@@ -5,11 +5,26 @@ import { el, iconEl } from "./shared-ui.js";
 import { fmt, dayTag, human, MIN, inSleep } from "../game/schedule.js";
 import { recipeFor, stepsForBake } from "../game/bakes.js";
 import { proj } from "../game/schedule.js";
-import { METHOD_TITLES } from "../game/methods.js";
 import { registerCustomMethod } from "../game/methods.js";
 import { startBakeFromRecipe } from "./bakes.js";
 import { recipesFor } from "../game/ownership.js";
 import { newId } from "../game/ids.js";
+
+// Log entries only started carrying `recipe` recently (see finishBake in
+// bakes.js) — older/seeded log entries predate the link and simply won't
+// count toward any recipe's "times baked" or "last baked".
+function loggedBakesFor(store, recipeId) {
+  return store.log.filter((e) => !e.deleted && e.recipe === recipeId);
+}
+
+function abbreviateSource(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return host.charAt(0).toUpperCase() + host.slice(1);
+  } catch (e) {
+    return url;
+  }
+}
 
 export function renderRecipes(ctx) {
   const { state } = ctx;
@@ -31,7 +46,7 @@ export function renderRecipes(ctx) {
   head.appendChild(el("div", {
     style: "width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;color:#5C5447;cursor:pointer",
     html: '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13"></path><path d="M5.5 12h13"></path></svg>',
-    onClick: () => { state.builder = true; state.nr = { name: "", sub: "", method: "sourdough", ing: [{ name: "", g: "" }, { name: "", g: "" }], steps: [] }; ctx.render(); },
+    onClick: () => { state.builder = true; state.nr = { name: "", sub: "", source: "", method: "sourdough", ing: [{ name: "", g: "" }, { name: "", g: "" }], steps: [] }; ctx.render(); },
   }));
   header.appendChild(head);
 
@@ -64,23 +79,59 @@ export function renderRecipes(ctx) {
     const fl = r.rows.filter((x) => /flour|wheat|rye|semolina/i.test(x[0])).reduce((a, x) => a + x[1], 0);
     const authored = liq && liq[2] && liq[2] !== "—" ? liq[2] : null;
     const hydration = authored || (liq && fl ? Math.round((liq[1] / fl) * 100) + "%" : "—");
+    const bakedCount = loggedBakesFor(store, r.id).length;
+    const badge = el("div", { style: "display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:none" }, [
+      el("div", { style: "display:flex;align-items:center;gap:4px" }, [
+        iconEl("dropSmall", "color:#A79C8A"),
+        el("span", { style: "font:500 11.5px/1 var(--num);color:#A79C8A", text: hydration }),
+      ]),
+    ]);
+    if (bakedCount) {
+      badge.appendChild(el("div", { style: "display:flex;align-items:center;gap:4px" }, [
+        iconEl("startBakeSmall", "color:#A79C8A"),
+        el("span", { style: "font:500 11.5px/1 var(--num);color:#A79C8A", text: String(bakedCount) }),
+      ]));
+    }
     list.appendChild(el("div", {
       style: "background:#FBF8F1;border-radius:17px;padding:16px;cursor:pointer;border:1px solid #EAE2D2",
-      onClick: () => { state.openRecipeId = r.id; state.scale = 1; ctx.render(); },
+      onClick: () => { state.openRecipeId = r.id; state.scale = 1; state.ingredientsCollapsed = false; ctx.render(); },
     }, [
       el("div", { style: "display:flex;align-items:baseline;gap:10px" }, [
         el("div", { style: "flex:1;font:400 19px/1.2 'Source Serif 4',Georgia,serif", text: r.name }),
-        el("div", { style: "display:flex;align-items:center;gap:4px;flex:none" }, [
-          iconEl("dropSmall", "color:#A79C8A"),
-          el("span", { style: "font:500 11.5px/1 var(--num);color:#A79C8A", text: hydration }),
-        ]),
+        badge,
       ]),
       el("div", { style: "font:400 12.5px/1.45 var(--ui);color:#8A8171;margin-top:6px", text: r.sub }),
     ]));
   });
   wrap.appendChild(list);
 
+  const discardedSeed = discardedSeedRecipesFor(store, acc.id);
+  if (discardedSeed.length) {
+    wrap.appendChild(el("div", {
+      style: "text-align:center;margin-top:16px;color:#A79C8A;font:600 12.5px/1 var(--ui);cursor:pointer;padding:10px 0",
+      text: state.showDiscardedRecipes ? "Hide discarded recipes" : "Display discarded recipes",
+      onClick: () => { state.showDiscardedRecipes = !state.showDiscardedRecipes; ctx.render(); },
+    }));
+    if (state.showDiscardedRecipes) {
+      const dList = el("div", { style: "display:flex;flex-direction:column;gap:10px;margin-top:12px" });
+      discardedSeed.forEach((r) => {
+        dList.appendChild(el("div", {
+          style: "background:#F5F0E5;border-radius:17px;padding:16px;cursor:pointer;border:1.5px dashed #D8CDB8;opacity:.6",
+          onClick: () => { state.openRecipeId = r.id; state.scale = 1; state.ingredientsCollapsed = false; ctx.render(); },
+        }, [
+          el("div", { style: "font:400 19px/1.2 'Source Serif 4',Georgia,serif;color:#8A8171", text: r.name }),
+          el("div", { style: "font:400 12.5px/1.45 var(--ui);color:#A79C8A;margin-top:6px", text: r.sub }),
+        ]));
+      });
+      wrap.appendChild(dList);
+    }
+  }
+
   return wrap;
+}
+
+function discardedSeedRecipesFor(store, accountId) {
+  return store.recipes.filter((r) => r.ownerId === accountId && r.deleted && r.creator === "Levain");
 }
 
 // ---------------------------------------------------------------- builder
@@ -110,6 +161,10 @@ function recipeBuilder(ctx) {
   const subInput = el("input", { class: "field", placeholder: "One line about it", style: "margin-top:9px;padding:13px 15px;font-size:16px", value: nr.sub });
   subInput.addEventListener("input", (e) => { nr.sub = e.target.value; });
   wrap.appendChild(subInput);
+
+  const sourceInput = el("input", { class: "field", placeholder: "Source URL (optional)", style: "margin-top:9px;padding:13px 15px;font-size:16px", value: nr.source });
+  sourceInput.addEventListener("input", (e) => { nr.source = e.target.value; });
+  wrap.appendChild(sourceInput);
 
   wrap.appendChild(el("div", { style: "font:600 11px/1 var(--num);letter-spacing:.14em;text-transform:uppercase;color:#A79C8A;margin:24px 0 11px", text: "Method it follows" }));
   const methodsRow = el("div", { style: "display:flex;flex-wrap:wrap;gap:7px" });
@@ -196,10 +251,12 @@ function saveRecipe(ctx) {
       id: "s" + i, label: s.label.trim(), dur: Math.max(1, Number(s.dur) || 30), act: Math.max(0, Number(s.act) || 0), hint: "", cue: "",
     })));
   }
-  store.recipes.push({ id, name, sub: (nr.sub || "").trim() || "Your own formula.", method, rows: rows.length ? rows : [["Flour", 500, "100%"]], last: "Never — just written.", ownerId: acc.id, updatedAt: Date.now(), deleted: false });
+  const source = (nr.source || "").trim() || null;
+  store.recipes.push({ id, name, sub: (nr.sub || "").trim() || "Your own formula.", source, creator: acc.name, method, rows: rows.length ? rows : [["Flour", 500, "100%"]], ownerId: acc.id, updatedAt: Date.now(), deleted: false });
   state.builder = false;
   state.openRecipeId = id;
   state.scale = 1;
+  state.ingredientsCollapsed = false;
   ctx.persist();
   ctx.render();
 }
@@ -210,40 +267,70 @@ function recipeDetail(ctx, recipe) {
   const { state } = ctx;
   const store = state.store;
   const now = state.now;
-  const editing = state.editing;
+  const editing = state.editing && !recipe.deleted;
 
   const wrap = el("div", { style: "padding-top:62px" });
   const topRow = el("div", { style: "display:flex;align-items:center;gap:12px;margin-bottom:16px" });
   topRow.appendChild(el("div", { style: "flex:1;font:600 13px/1 var(--ui);color:#A65A2E;cursor:pointer", text: "‹ Recipes", onClick: () => { state.openRecipeId = null; state.editing = false; ctx.render(); } }));
-  topRow.appendChild(el("div", {
-    style: "width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;color:#5C5447;cursor:pointer;flex:none",
-    html: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 3.5L3.8 10.2l6.3 2.4 2.4 6.3z"></path><path d="M20.5 3.5l-10.4 9.1"></path></svg>',
-    onClick: () => shareRecipe(ctx, recipe),
-  }));
-  topRow.appendChild(el("div", {
-    style: "width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;color:#A65A2E;cursor:pointer;flex:none",
-    html: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 18.4a8.6 8.6 0 0 1 17.2 0z"></path><path d="M9.4 15.4l3-3.4"></path><path d="M13 16.2l2.4-2.7"></path><path d="M8 6.4c0-1.2 1-1.6 1-2.8"></path><path d="M12 6c0-1.4 1-1.8 1-3.2"></path><path d="M16 6.4c0-1.2 1-1.6 1-2.8"></path></svg>',
-    onClick: () => startBakeFromRecipe(ctx, recipe.id),
-  }));
-  if (!editing) {
+
+  if (!recipe.deleted) {
+    if (!editing) {
+      topRow.appendChild(el("div", {
+        style: "width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;color:#5C5447;cursor:pointer;flex:none",
+        html: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 4.5l3 3-10 10H6.5v-3z"></path><path d="M14.5 6.5l3 3"></path></svg>',
+        onClick: () => { state.editing = true; ctx.render(); },
+      }));
+    } else {
+      topRow.appendChild(el("div", {
+        style: "display:flex;align-items:center;gap:7px;background:#A65A2E;color:#FFF;border-radius:11px;padding:9px 13px;cursor:pointer;flex:none",
+        onClick: () => { state.editing = false; recipe.updatedAt = Date.now(); ctx.persist(); ctx.render(); },
+      }, [
+        el("div", { html: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6l4.4 4.4L19 7.4"></path></svg>' }),
+        el("span", { style: "font:600 12.5px/1 var(--ui)", text: "Done" }),
+      ]));
+    }
     topRow.appendChild(el("div", {
       style: "width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;color:#5C5447;cursor:pointer;flex:none",
-      html: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 4.5l3 3-10 10H6.5v-3z"></path><path d="M14.5 6.5l3 3"></path></svg>',
-      onClick: () => { state.editing = true; ctx.render(); },
+      html: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 3.5L3.8 10.2l6.3 2.4 2.4 6.3z"></path><path d="M20.5 3.5l-10.4 9.1"></path></svg>',
+      onClick: () => shareRecipe(ctx, recipe),
     }));
-  } else {
     topRow.appendChild(el("div", {
-      style: "display:flex;align-items:center;gap:7px;background:#A65A2E;color:#FFF;border-radius:11px;padding:9px 13px;cursor:pointer;flex:none",
-      onClick: () => { state.editing = false; recipe.updatedAt = Date.now(); ctx.persist(); ctx.render(); },
-    }, [
-      el("div", { html: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.6l4.4 4.4L19 7.4"></path></svg>' }),
-      el("span", { style: "font:600 12.5px/1 var(--ui)", text: "Done" }),
-    ]));
+      style: "width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;color:#A65A2E;cursor:pointer;flex:none",
+      html: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 18.4a8.6 8.6 0 0 1 17.2 0z"></path><path d="M9.4 15.4l3-3.4"></path><path d="M13 16.2l2.4-2.7"></path><path d="M8 6.4c0-1.2 1-1.6 1-2.8"></path><path d="M12 6c0-1.4 1-1.8 1-3.2"></path><path d="M16 6.4c0-1.2 1-1.6 1-2.8"></path></svg>',
+      onClick: () => startBakeFromRecipe(ctx, recipe.id),
+    }));
   }
   wrap.appendChild(topRow);
 
   wrap.appendChild(el("h1", { style: "font:400 28px/1.1 'Source Serif 4',Georgia,serif;margin:0 0 6px;letter-spacing:-.01em", text: recipe.name }));
-  wrap.appendChild(el("div", { style: "font:400 13px/1.45 var(--ui);color:#8A8171;margin-bottom:18px", text: recipe.sub }));
+  wrap.appendChild(el("div", { style: "font:400 13px/1.45 var(--ui);color:#8A8171;margin-bottom:10px", text: recipe.sub }));
+
+  const meta = el("div", { style: "display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:18px;font:400 12px/1 var(--ui);color:#A79C8A" });
+  if (recipe.creator) meta.appendChild(el("span", { text: "By " + recipe.creator }));
+  if (editing) {
+    const sourceI = el("input", { placeholder: "Source URL (optional)", value: recipe.source || "", style: "flex:1;min-width:160px;background:#F5F0E5;border:1px solid #E4DAC6;border-radius:9px;padding:8px 10px;font:400 14px/1.3 var(--ui);color:#3A3529;outline:none" });
+    sourceI.addEventListener("input", (e) => { recipe.source = e.target.value.trim() || null; });
+    meta.appendChild(sourceI);
+  } else if (recipe.source) {
+    if (recipe.creator) meta.appendChild(el("span", { text: "·" }));
+    meta.appendChild(el("a", { href: recipe.source, target: "_blank", rel: "noopener noreferrer", style: "color:#A65A2E;font:600 12px/1 var(--ui);text-decoration:none", text: "↗ " + abbreviateSource(recipe.source) }));
+  }
+  if (meta.childNodes.length) wrap.appendChild(meta);
+
+  if (recipe.deleted) {
+    wrap.appendChild(el("div", { style: "background:#F5F0E5;border:1px dashed #D8CDB8;border-radius:14px;padding:14px;margin-bottom:18px;display:flex;align-items:center;gap:12px" }, [
+      el("div", { style: "flex:1;font:400 13px/1.5 var(--ui);color:#8A8171", text: "This recipe was discarded. It's read-only until you bring it back." }),
+      el("div", {
+        style: "background:#A65A2E;color:#FFF;border-radius:10px;padding:9px 13px;font:600 12.5px/1 var(--ui);cursor:pointer;flex:none",
+        text: "Restore",
+        onClick: () => {
+          recipe.deleted = false;
+          recipe.updatedAt = Date.now();
+          ctx.persist(); ctx.render();
+        },
+      }),
+    ]));
+  }
 
   if (state.shareText) {
     const box = el("div", { style: "background:#F3EDE0;border:1px solid #E4DAC6;border-radius:16px;padding:15px;margin-bottom:18px" });
@@ -261,39 +348,54 @@ function recipeDetail(ctx, recipe) {
 
   wrap.appendChild(ingredientsCard(ctx, recipe));
 
-  wrap.appendChild(el("div", { style: "font:600 11px/1 var(--num);letter-spacing:.14em;text-transform:uppercase;color:#A79C8A;margin:26px 0 11px", text: "When to start" }));
-  wrap.appendChild(startTimeGrid(ctx, recipe));
-  wrap.appendChild(el("div", { style: "font:400 12px/1.5 var(--ui);color:#A79C8A;margin-top:9px", text: startAnchorLabel(state, now) }));
+  if (!recipe.deleted) {
+    wrap.appendChild(el("div", { style: "font:600 11px/1 var(--num);letter-spacing:.14em;text-transform:uppercase;color:#A79C8A;margin:26px 0 11px", text: "When to start" }));
+    wrap.appendChild(startTimeGrid(ctx, recipe));
+    wrap.appendChild(el("div", { style: "font:400 12px/1.5 var(--ui);color:#A79C8A;margin-top:9px", text: startAnchorLabel(state, now) }));
 
-  wrap.appendChild(el("div", { style: "font:600 11px/1 var(--num);letter-spacing:.14em;text-transform:uppercase;color:#A79C8A;margin:26px 0 11px", text: METHOD_TITLES[recipe.method] || "Method" }));
-  wrap.appendChild(methodStepsCard(ctx, recipe));
-  wrap.appendChild(el("div", { style: "font:400 12px/1.5 var(--ui);color:#A79C8A;margin-top:11px", text: "Durations feed every projection. Change one here and the running bakes on this recipe shift with it." }));
+    wrap.appendChild(el("div", { style: "font:600 11px/1 var(--num);letter-spacing:.14em;text-transform:uppercase;color:#A79C8A;margin:26px 0 11px", text: "Steps" }));
+    wrap.appendChild(methodStepsCard(ctx, recipe));
+    wrap.appendChild(el("div", { style: "font:400 12px/1.5 var(--ui);color:#A79C8A;margin-top:11px", text: "Durations feed every projection. Change one here and the running bakes on this recipe shift with it." }));
 
-  wrap.appendChild(el("div", { style: "font:600 11px/1 var(--num);letter-spacing:.14em;text-transform:uppercase;color:#A79C8A;margin:26px 0 11px", text: "Last baked" }));
-  wrap.appendChild(el("div", { style: "font:400 13px/1.6 var(--ui);color:#6E6558", text: recipe.last }));
+    const logged = loggedBakesFor(store, recipe.id);
+    if (logged.length) {
+      const latest = logged.reduce((a, b) => ((b.at || 0) > (a.at || 0) ? b : a));
+      const stars = (latest.stars.match(/★/g) || []).length;
+      wrap.appendChild(el("div", { style: "font:600 11px/1 var(--num);letter-spacing:.14em;text-transform:uppercase;color:#A79C8A;margin:26px 0 11px", text: "Last baked" }));
+      wrap.appendChild(el("div", { style: "font:400 13px/1.6 var(--ui);color:#6E6558", text: `${latest.when} — rated ${stars}.` }));
+    }
+  }
 
-  if (state.rDel) {
-    wrap.appendChild(el("div", { style: "margin-top:26px;background:#FBF8F1;border:1px solid #E4C9BC;border-radius:14px;padding:15px" }, [
-      el("div", { style: "font:400 13px/1.5 var(--ui);color:#5C5447", text: `Delete ${recipe.name}? The formula, its step timings and any bake running on it go with it. This can't be undone.` }),
-      el("div", { style: "display:flex;gap:9px;margin-top:13px" }, [
-        el("div", { style: "flex:1;background:#F0E9DC;color:#5C5447;border-radius:11px;padding:11px 0;text-align:center;font:600 13.5px/1 var(--ui);cursor:pointer", text: "Keep it", onClick: () => { state.rDel = false; ctx.render(); } }),
-        el("div", { style: "flex:1;background:#B03A2B;color:#FFF;border-radius:11px;padding:11px 0;text-align:center;font:700 13.5px/1 var(--ui);cursor:pointer", text: "Delete", onClick: () => {
-          const now = Date.now();
-          store.recipes.forEach((r) => { if (r.id === recipe.id) { r.deleted = true; r.updatedAt = now; } });
-          store.bakes.forEach((b) => { if (b.recipe === recipe.id) { b.deleted = true; b.updatedAt = now; } });
-          state.rDel = false; state.openRecipeId = null; state.editing = false; state.idx = 0;
-          ctx.persist(); ctx.render();
-        } }),
-      ]),
-    ]));
-  } else {
-    wrap.appendChild(el("div", {
-      style: "display:flex;align-items:center;justify-content:center;gap:9px;margin-top:26px;border:1.5px solid #E4CFC6;border-radius:14px;padding:13px 0;color:#B03A2B;cursor:pointer",
-      onClick: () => { state.rDel = true; ctx.render(); },
-    }, [
-      el("div", { html: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15"></path><path d="M9.5 7V4.8h5V7"></path><path d="M6.5 7l.9 12.2h9.2L17.5 7"></path><path d="M10.5 10.5v6"></path><path d="M13.5 10.5v6"></path></svg>' }),
-      el("span", { style: "font:600 13.5px/1 var(--ui)", text: "Delete recipe" }),
-    ]));
+  if (!recipe.deleted) {
+    if (state.rDel) {
+      const isSeed = recipe.creator === "Levain";
+      wrap.appendChild(el("div", { style: "margin-top:26px;background:#FBF8F1;border:1px solid #E4C9BC;border-radius:14px;padding:15px" }, [
+        el("div", {
+          style: "font:400 13px/1.5 var(--ui);color:#5C5447",
+          text: isSeed
+            ? `Discard ${recipe.name}? It'll disappear from your list, but you can bring it back anytime from "Display discarded recipes".`
+            : `Delete ${recipe.name}? The formula, its step timings and any bake running on it go with it. This can't be undone.`,
+        }),
+        el("div", { style: "display:flex;gap:9px;margin-top:13px" }, [
+          el("div", { style: "flex:1;background:#F0E9DC;color:#5C5447;border-radius:11px;padding:11px 0;text-align:center;font:600 13.5px/1 var(--ui);cursor:pointer", text: "Keep it", onClick: () => { state.rDel = false; ctx.render(); } }),
+          el("div", { style: "flex:1;background:#B03A2B;color:#FFF;border-radius:11px;padding:11px 0;text-align:center;font:700 13.5px/1 var(--ui);cursor:pointer", text: isSeed ? "Discard" : "Delete", onClick: () => {
+            const now = Date.now();
+            recipe.deleted = true; recipe.updatedAt = now;
+            if (!isSeed) store.bakes.forEach((b) => { if (b.recipe === recipe.id) { b.deleted = true; b.updatedAt = now; } });
+            state.rDel = false; state.openRecipeId = null; state.editing = false; state.idx = 0;
+            ctx.persist(); ctx.render();
+          } }),
+        ]),
+      ]));
+    } else {
+      wrap.appendChild(el("div", {
+        style: "display:flex;align-items:center;justify-content:center;gap:9px;margin-top:26px;border:1.5px solid #E4CFC6;border-radius:14px;padding:13px 0;color:#B03A2B;cursor:pointer",
+        onClick: () => { state.rDel = true; ctx.render(); },
+      }, [
+        el("div", { html: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15"></path><path d="M9.5 7V4.8h5V7"></path><path d="M6.5 7l.9 12.2h9.2L17.5 7"></path><path d="M10.5 10.5v6"></path><path d="M13.5 10.5v6"></path></svg>' }),
+        el("span", { style: "font:600 13.5px/1 var(--ui)", text: recipe.creator === "Levain" ? "Discard recipe" : "Delete recipe" }),
+      ]));
+    }
   }
 
   return wrap;
@@ -302,14 +404,24 @@ function recipeDetail(ctx, recipe) {
 function ingredientsCard(ctx, recipe) {
   const { state } = ctx;
   const sc = state.scale || 1;
-  const editing = state.editing;
+  const editing = state.editing && !recipe.deleted;
+  const collapsed = !!state.ingredientsCollapsed;
   const box = el("div", { style: "background:#FBF8F1;border-radius:18px;border:1px solid #EAE2D2;overflow:hidden" });
   const head = el("div", { style: "display:flex;align-items:center;gap:12px;padding:14px 16px;background:#F5F0E5" });
-  head.appendChild(el("div", { style: "flex:1;font:600 13px/1 var(--ui);color:#5C5447", text: sc === 1 ? "One batch" : sc + " batches" }));
+  const label = el("div", {
+    style: "flex:1;display:flex;align-items:center;gap:7px;font:600 13px/1 var(--ui);color:#5C5447;cursor:pointer",
+    onClick: () => { state.ingredientsCollapsed = !collapsed; ctx.render(); },
+  }, [
+    el("span", { text: sc === 1 ? "One batch" : sc + " batches" }),
+    el("div", { style: `color:#A79C8A;display:flex;transition:transform .15s;transform:rotate(${collapsed ? -90 : 0}deg)`, html: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"></path></svg>' }),
+  ]);
+  head.appendChild(label);
   head.appendChild(el("div", { style: "width:30px;height:30px;border-radius:10px;background:#E7DECC;display:flex;align-items:center;justify-content:center;font:500 17px/1 var(--ui);color:#6E6558;cursor:pointer", text: "−", onClick: () => { state.scale = Math.max(1, sc - 1); ctx.render(); } }));
   head.appendChild(el("div", { style: "font:500 14px/1 var(--num);min-width:34px;text-align:center", text: sc + "×" }));
   head.appendChild(el("div", { style: "width:30px;height:30px;border-radius:10px;background:#E7DECC;display:flex;align-items:center;justify-content:center;font:500 17px/1 var(--ui);color:#6E6558;cursor:pointer", text: "+", onClick: () => { state.scale = Math.min(4, sc + 1); ctx.render(); } }));
   box.appendChild(head);
+
+  if (collapsed) return box;
 
   recipe.rows.forEach((row, ri) => {
     if (!editing) {

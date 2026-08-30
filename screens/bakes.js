@@ -370,6 +370,8 @@ function finishBake(ctx, bake, { stars, notes, next }) {
   store.log.push({
     id: newId("l"),
     name: bake.name,
+    recipe: bake.recipe,
+    at: startedAt,
     when,
     stars: "★".repeat(stars) + "☆".repeat(5 - stars),
     notes: notes || "",
