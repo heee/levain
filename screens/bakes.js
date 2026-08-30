@@ -165,7 +165,11 @@ function timelineView(ctx) {
     const late = !x.isDone && x.at < now - MIN;
     const t = isCur ? curTone.c : "#B0A692";
     const range = x.step.judge && !x.isDone
-      ? fmt(x.at - x.step.dur * 0.2 * MIN) + "–" + fmt(x.at + x.step.dur * 0.25 * MIN)
+      ? (() => {
+          const from = x.at - x.step.dur * 0.2 * MIN;
+          const to = x.at + x.step.dur * 0.25 * MIN;
+          return fmt(from) + dayTag(from, now) + "–" + fmt(to) + dayTag(to, now);
+        })()
       : fmt(x.at) + dayTag(x.at, now);
 
     const row = el("div", { style: "display:flex;gap:13px" });
