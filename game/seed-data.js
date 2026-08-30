@@ -63,6 +63,9 @@ export function seedRecipes() {
     { id: "popovers", name: "Sourdough Popovers", sub: "Milk, eggs and discard whisked thin — puffs hollow and golden in a hot oven.", method: "discard",
       rows: [["Milk", 227, "—"], ["Eggs (3 large)", 150, "—"], ["Sourdough starter", 113, "—"], ["Flour", 120, "—"], ["Salt", 5, "—"]],
       last: "Never — this is its first outing." },
+    { id: "bananabread", name: "Sourdough Banana Bread", sub: "Discard, mashed banana and honey — a loaf pan, not a banneton.", method: "discard",
+      rows: [["Butter", 113, "—"], ["Brown sugar", 142, "—"], ["Mashed banana", 397, "—"], ["Honey", 85, "—"], ["Eggs (2 large)", 100, "—"], ["Sourdough starter", 113, "—"], ["Flour", 240, "—"], ["Chopped nuts", 85, "—"]],
+      last: "Never — this is its first outing." },
   ];
 }
 
