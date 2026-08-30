@@ -263,7 +263,7 @@ function timelineView(ctx) {
       }, [iconEl("clock")]));
       btnRow.appendChild(el("div", {
         style: "background:#F0E9DC;color:#5C5447;border-radius:11px;padding:0 13px;display:flex;align-items:center;gap:7px;cursor:pointer;flex:none",
-        onClick: () => speakTimer(ctx, bake, x, p),
+        onClick: () => speakTimer(ctx, bake, x),
       }, [iconEl("alexa"), el("div", { style: "font:600 13.5px/1 var(--ui)", text: "Alexa" })]));
       box.appendChild(btnRow);
       if (state.doneAtPickerFor === bake.id + ":" + x.step.id) {
@@ -392,14 +392,11 @@ function finishBake(ctx, bake, { stars, notes, next }) {
   ctx.render();
 }
 
-function speakTimer(ctx, bake, x, p) {
-  const nxt = p[x.i + 1];
-  const target = nxt ? nxt.at : x.at;
-  const mins = Math.max(1, Math.round((target - Date.now()) / MIN));
+function speakTimer(ctx, bake, x) {
+  const mins = Math.max(1, Math.round((x.at - Date.now()) / MIN));
   const h = Math.floor(mins / 60), m = mins % 60;
   const spoken = (h ? h + (h === 1 ? " hour" : " hours") : "") + (h && m ? " and " : "") + (m ? m + (m === 1 ? " minute" : " minutes") : "");
-  const label = nxt ? nxt.step.label : x.step.label;
-  const phrase = "Alexa, set a timer for " + spoken + " called " + label + " — " + bake.name + ".";
+  const phrase = "Alexa, set a timer for " + spoken + " called " + x.step.label + " — " + bake.name + ".";
   try {
     const sp = window.speechSynthesis;
     if (sp) { sp.cancel(); const u = new SpeechSynthesisUtterance(phrase); u.volume = 1; u.rate = 0.95; sp.speak(u); }

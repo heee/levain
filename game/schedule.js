@@ -75,11 +75,16 @@ export function stepsFor(method, overridesForMethod) {
   const texts = (overridesForMethod && overridesForMethod.texts) || {};
   return METHODS[method].map((s) => {
     const t = texts[s.id] || {};
+    const hint = t.hint != null ? t.hint : s.hint;
     return {
       ...s,
       dur: durs[s.id] != null ? durs[s.id] : s.dur,
       label: t.label != null ? t.label : s.label,
-      hint: t.hint != null ? t.hint : s.hint,
+      hint,
+      // A hint override with no matching cue override would otherwise leave
+      // the base method's cue in place — brief() then appends that stale
+      // "— look for ..." onto the new hint since the two no longer match.
+      cue: t.cue != null ? t.cue : (t.hint != null ? hint : s.cue),
       act: t.act != null ? t.act : s.act,
     };
   });

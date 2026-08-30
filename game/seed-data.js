@@ -67,19 +67,9 @@ export function seedRecipes() {
     { id: "muffins", name: "Discard muffins", sub: "Whatever discard is in the jar. Half an hour, start to finish.", method: "discard",
       rows: [["Sourdough discard", 200, "—"], ["Flour", 180, "—"], ["Sugar", 90, "—"], ["Butter, melted", 85, "—"], ["Egg", 50, "—"], ["Blueberries", 120, "—"]],
       creator: "Levain", source: null },
-    { id: "popovers", name: "Sourdough Popovers", sub: "Milk, eggs and discard whisked thin — puffs hollow and golden in a hot oven.", method: "discard",
+    { id: "popovers", name: "Sourdough Popovers", sub: "Milk, eggs and discard whisked thin — puffs hollow and golden in a hot oven.", method: "popovers",
       rows: [["Milk", 227, "—"], ["Eggs (3 large)", 150, "—"], ["Sourdough starter", 113, "—"], ["Flour", 120, "—"], ["Salt", 5, "—"]],
-      creator: "Levain", source: "https://www.kingarthurbaking.com/recipes/sourdough-popovers-recipe",
-      // The source recipe skips a rest entirely — the wait is really for the
-      // oven (and pan) to come up to heat, so the generic "discard" method's
-      // steps are overridden here rather than in the shared template, which
-      // muffins and banana bread still use unmodified.
-      stepOverrides: {
-        "d-mix": { hint: "Whisk the milk, eggs and starter smooth, then whisk in the flour and salt just until combined — a few small lumps are fine." },
-        "d-rest": { label: "Preheat the oven", dur: 20, hint: "No need to rest this batter — put your popover or muffin pan in the oven now and heat both to 450°F, so the pan is screaming hot when the batter goes in." },
-        "d-bake": { dur: 32, hint: "450°F for 15 minutes without opening the door, then drop to 375°F for another 15–20 minutes, until deeply golden and dry inside." },
-        "d-cool": { dur: 5, hint: "Pierce each one with a knife to let the steam out, then serve immediately — they deflate fast once out of the oven." },
-      } },
+      creator: "Levain", source: "https://www.kingarthurbaking.com/recipes/sourdough-popovers-recipe" },
     { id: "bananabread", name: "Sourdough Banana Bread", sub: "Discard, mashed banana and honey — a loaf pan, not a banneton.", method: "discard",
       rows: [["Butter", 113, "—"], ["Brown sugar", 142, "—"], ["Mashed banana", 397, "—"], ["Honey", 85, "—"], ["Eggs (2 large)", 100, "—"], ["Sourdough starter", 113, "—"], ["Flour", 240, "—"], ["Chopped nuts", 85, "—"]],
       creator: "Levain", source: "https://www.kingarthurbaking.com/recipes/sourdough-banana-bread-recipe" },

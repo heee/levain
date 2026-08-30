@@ -58,6 +58,18 @@ export const METHODS = {
     { id: "d-bake", label: "Bake", dur: 22, act: 3, hint: "375°F" },
     { id: "d-cool", label: "Cool", dur: 20, act: 0, hint: "In the tin five minutes, then out" },
   ],
+  // Its own template rather than an override on "discard" — unlike a
+  // generic discard bake, popovers skip the rest entirely (the wait is for
+  // the oven and pan to heat) and bake in two distinct temperature stages,
+  // which the shared discard template has no room for without adding an
+  // unwanted step to muffins/banana bread too.
+  popovers: [
+    { id: "p-mix", label: "Mix the batter", dur: 12, act: 12, hint: "Whisk the milk, eggs and starter smooth, then whisk in the flour and salt just until combined — a few small lumps are fine." },
+    { id: "p-preheat", label: "Preheat the oven", dur: 20, act: 0, hint: "No need to rest this batter — put your popover or muffin pan in the oven now and heat both to 450°F, so the pan is screaming hot when the batter goes in." },
+    { id: "p-bake1", label: "Bake, 450°F", dur: 15, act: 2, hint: "Don't open the oven door — let them rise undisturbed for the full 15 minutes." },
+    { id: "p-bake2", label: "Drop to 375°F", dur: 18, act: 1, hint: "Reduce the oven to 375°F and bake another 15–20 minutes, until deeply golden and dry inside." },
+    { id: "p-serve", label: "Serve", dur: 2, act: 2, hint: "Pierce each one with a knife to let the steam out, then serve immediately — they deflate fast once out of the oven." },
+  ],
 };
 
 export const CUMS = {};
@@ -76,6 +88,7 @@ export const METHOD_LABELS = {
   bagels: "Bagels",
   pizza: "Pizza",
   discard: "Discard bake",
+  popovers: "Popovers",
 };
 
 export const METHOD_TITLES = {
@@ -84,6 +97,7 @@ export const METHOD_TITLES = {
   bagels: "Bagel method",
   pizza: "Pizza method",
   discard: "Discard method",
+  popovers: "Popovers method",
 };
 
 // Registers a one-off custom method (from the recipe builder's free-form

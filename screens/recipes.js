@@ -12,9 +12,12 @@ import { newId } from "../game/ids.js";
 
 // Log entries only started carrying `recipe` recently (see finishBake in
 // bakes.js) — older/seeded log entries predate the link, so fall back to
-// matching by name (the log always carries the bake's name) for those.
+// matching by name (the log always carries the bake's name) for those. Every
+// baker gets their own copy of each seed recipe with the same name (see
+// seedRecipesFor), so the name fallback must also stay scoped to ownerId or
+// it'll pick up another baker's identically-named log entries too.
 function loggedBakesFor(store, recipe) {
-  return store.log.filter((e) => !e.deleted &&
+  return store.log.filter((e) => !e.deleted && e.ownerId === recipe.ownerId &&
     (e.recipe ? e.recipe === recipe.id : e.name === recipe.name));
 }
 
@@ -97,11 +100,16 @@ export function renderRecipes(ctx) {
       style: "background:#FBF8F1;border-radius:17px;padding:16px;cursor:pointer;border:1px solid #EAE2D2",
       onClick: () => { state.openRecipeId = r.id; state.scale = 1; state.ingredientsCollapsed = false; state.starterReady = false; ctx.render(); },
     }, [
-      el("div", { style: "display:flex;align-items:baseline;gap:10px" }, [
-        el("div", { style: "flex:1;font:400 19px/1.2 'Source Serif 4',Georgia,serif", text: r.name }),
+      el("div", { style: "display:flex;align-items:flex-start;gap:10px" }, [
+        // Title+sub stay in their own column so the badge's height (1 row for
+        // hydration alone, 2 once a bake count joins it) never pushes the
+        // sub down — it used to share a baseline-aligned row with the title.
+        el("div", { style: "flex:1;min-width:0" }, [
+          el("div", { style: "font:400 19px/1.2 'Source Serif 4',Georgia,serif", text: r.name }),
+          el("div", { style: "font:400 12.5px/1.45 var(--ui);color:#8A8171;margin-top:6px", text: r.sub }),
+        ]),
         badge,
       ]),
-      el("div", { style: "font:400 12.5px/1.45 var(--ui);color:#8A8171;margin-top:6px", text: r.sub }),
     ]));
   });
   wrap.appendChild(list);
