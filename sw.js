@@ -1,6 +1,6 @@
 // Levain — offline cache. Bump CACHE_NAME on every shipped change so
 // clients pick up new files instead of serving stale ones forever.
-const CACHE_NAME = "levain-v22";
+const CACHE_NAME = "levain-v23";
 const CORE = [
   "./",
   "./index.html",

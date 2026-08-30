@@ -60,6 +60,9 @@ export function seedRecipes() {
     { id: "muffins", name: "Discard muffins", sub: "Whatever discard is in the jar. Half an hour, start to finish.", method: "discard",
       rows: [["Sourdough discard", 200, "—"], ["Flour", 180, "—"], ["Sugar", 90, "—"], ["Butter, melted", 85, "—"], ["Egg", 50, "—"], ["Blueberries", 120, "—"]],
       last: "Yesterday — rated 3, a bit flat." },
+    { id: "popovers", name: "Sourdough Popovers", sub: "Milk, eggs and discard whisked thin — puffs hollow and golden in a hot oven.", method: "discard",
+      rows: [["Milk", 227, "—"], ["Eggs (3 large)", 150, "—"], ["Sourdough starter", 113, "—"], ["Flour", 120, "—"], ["Salt", 5, "—"]],
+      last: "Never — this is its first outing." },
   ];
 }
 

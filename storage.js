@@ -83,6 +83,15 @@ export function normalizeStore(raw) {
   accounts.forEach((a) => {
     if (!recipes.some((r) => r.ownerId === a.id)) recipes = recipes.concat(seedRecipesFor(a.id));
   });
+  // New seed recipes added after a baker's account already existed (e.g.
+  // popovers) wouldn't otherwise reach them — the check above only fires for
+  // accounts with zero recipes. Backfill just the missing ones by id, same
+  // updatedAt: 0 placeholder convention as a fresh seed.
+  accounts.forEach((a) => {
+    seedRecipesFor(a.id).forEach((seedRecipe) => {
+      if (!recipes.some((r) => r.id === seedRecipe.id)) recipes = recipes.concat([seedRecipe]);
+    });
+  });
   return {
     accounts,
     recipes,
