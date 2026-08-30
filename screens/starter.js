@@ -4,7 +4,7 @@
 import { el, iconEl, photoSlot } from "./shared-ui.js";
 import { fmt, dayLabel, ago, ratioOf, MIN } from "../game/schedule.js";
 import { FLOUR_CHIPS, STARTER_LOCATIONS } from "../game/seed-data.js";
-import { starterRise } from "./starter-vm.js";
+import { starterRise, starterLine } from "./starter-vm.js";
 import { startersFor } from "../game/ownership.js";
 import { newId } from "../game/ids.js";
 
@@ -15,8 +15,47 @@ function addStarter(ctx, acc) {
   const id = newId("s");
   store.starters.push({ id, name: "Starter " + n, age: "New · name it and log the first feed", where: "Counter", peakMin: 420, ownerId: acc.id, feeds: [], updatedAt: Date.now(), deleted: false });
   acc.starterId = id; acc.updatedAt = Date.now();
-  state.pickerOpen = false; state.feedOpen = true;
+  state.pickerOpen = false; state.feedOpen = true; state.starterDetailOpen = true;
   ctx.persist(); ctx.render();
+}
+
+// With more than one starter, the tab lands on an overview of cards rather
+// than dropping straight into whichever was last active — state.starterDetailOpen
+// tracks whether a card's been tapped into. With 0 or 1 starter there's
+// nothing to choose between, so this list is skipped entirely (see
+// renderStarter below).
+function starterList(ctx, myStarters, acc, now) {
+  const { state } = ctx;
+  const wrap = el("div", { style: "padding:0 20px" });
+  wrap.appendChild(el("div", { class: "sticky-header", style: "padding-bottom:14px" }, [
+    el("h1", { style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0 0 6px;letter-spacing:-.01em", text: "Starter" }),
+    el("div", { style: "font:400 13.5px/1.4 var(--ui);color:#8A8171", text: `${myStarters.length} starters` }),
+  ]));
+
+  const list = el("div", { style: "display:flex;flex-direction:column;gap:10px;margin-top:6px" });
+  myStarters.forEach((s) => {
+    list.appendChild(el("div", {
+      style: "background:#FBF8F1;border-radius:17px;padding:16px;cursor:pointer;border:1px solid #EAE2D2;display:flex;align-items:center;gap:12px",
+      onClick: () => { acc.starterId = s.id; acc.updatedAt = Date.now(); state.starterDetailOpen = true; ctx.persist(); ctx.render(); },
+    }, [
+      el("div", { style: "flex:1;min-width:0" }, [
+        el("div", { style: "font:400 19px/1.2 'Source Serif 4',Georgia,serif", text: s.name }),
+        el("div", { style: "font:400 12.5px/1.45 var(--ui);color:#8A8171;margin-top:6px", text: starterLine(s, now) }),
+      ]),
+      el("div", { style: "color:#A79C8A;flex:none", html: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 5.5l7 6.5-7 6.5"></path></svg>' }),
+    ]));
+  });
+  wrap.appendChild(list);
+
+  wrap.appendChild(el("div", {
+    style: "display:flex;align-items:center;justify-content:center;gap:9px;margin-top:14px;border:1.5px solid #DDD2BC;border-radius:14px;padding:13px 0;color:#A65A2E;cursor:pointer",
+    onClick: () => addStarter(ctx, acc),
+  }, [
+    el("div", { html: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.5v13"></path><path d="M5.5 12h13"></path></svg>' }),
+    el("span", { style: "font:600 13px/1 var(--ui)", text: "Add a starter" }),
+  ]));
+
+  return wrap;
 }
 
 export function renderStarter(ctx) {
@@ -27,9 +66,8 @@ export function renderStarter(ctx) {
   const myStarters = startersFor(store, acc.id);
   const starter = myStarters.find((s) => s.id === acc.starterId) || myStarters[0];
 
-  const wrap = el("div", { style: "padding:0 20px" });
-
   if (!starter) {
+    const wrap = el("div", { style: "padding:0 20px" });
     wrap.appendChild(el("h1", { style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0 0 16px;letter-spacing:-.01em", text: "Starter" }));
     wrap.appendChild(el("div", { style: "background:#FBF8F1;border-radius:20px;padding:24px;border:1px dashed #DDD2BC;text-align:center;color:#8A8171;font:400 14px/1.5 var(--ui)" }, [
       el("div", { text: "No starter yet. Add one to start tracking feeds and peak predictions." }),
@@ -38,9 +76,22 @@ export function renderStarter(ctx) {
     return wrap;
   }
 
+  if (myStarters.length > 1 && !state.starterDetailOpen) {
+    return starterList(ctx, myStarters, acc, now);
+  }
+
+  const wrap = el("div", { style: "padding:0 20px" });
   const { fed, lastFeed, pct } = starterRise(starter, now);
 
-  const headRow = el("div", { class: "sticky-header", style: "display:flex;align-items:flex-start;gap:12px;padding-bottom:20px" });
+  const headRow = el("div", { class: "sticky-header", style: "padding-bottom:20px" });
+  if (myStarters.length > 1) {
+    headRow.appendChild(el("div", {
+      style: "font:600 13px/1 var(--ui);color:#A65A2E;cursor:pointer;margin-bottom:14px",
+      text: "‹ Starters",
+      onClick: () => { state.starterDetailOpen = false; ctx.render(); },
+    }));
+  }
+  const titleRow = el("div", { style: "display:flex;align-items:flex-start;gap:12px" });
   const titleCol = el("div", { style: "flex:1;min-width:0" });
   if (state.nameEdit) {
     const commit = () => {
@@ -69,14 +120,15 @@ export function renderStarter(ctx) {
     }));
   }
   titleCol.appendChild(el("div", { style: "font:400 13.5px/1.4 var(--ui);color:#8A8171", text: starter.age }));
-  headRow.appendChild(titleCol);
-  headRow.appendChild(el("div", {
+  titleRow.appendChild(titleCol);
+  titleRow.appendChild(el("div", {
     style: "display:flex;align-items:center;gap:7px;border:1.5px solid #DDD2BC;border-radius:11px;padding:8px 11px;color:#5C5447;cursor:pointer;flex:none",
     onClick: () => { state.pickerOpen = !state.pickerOpen; ctx.render(); },
   }, [
     el("span", { style: "font:600 12px/1 var(--ui);white-space:nowrap", text: myStarters.length + (myStarters.length === 1 ? " starter" : " starters") }),
     el("div", { html: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"></path></svg>' }),
   ]));
+  headRow.appendChild(titleRow);
 
   if (state.pickerOpen) {
     const menu = el("div", { style: "position:absolute;top:46px;right:0;width:236px;background:#FBF8F1;border:1px solid #E4DAC6;border-radius:16px;box-shadow:0 14px 34px rgba(60,48,28,.16);overflow:hidden;z-index:20" });

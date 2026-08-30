@@ -18,16 +18,18 @@ export function renderBakes(ctx) {
   const wrap = el("div", {});
   const head = el("div", { class: "sticky-header", style: "padding-left:20px;padding-right:20px;padding-bottom:16px;display:flex;align-items:center;justify-content:space-between" });
   head.appendChild(el("h1", { style: "font:400 30px/1 'Source Serif 4',Georgia,serif;margin:0;letter-spacing:-.01em", text: "Bakes" }));
-  const seg = el("div", { style: "display:flex;background:#E7DECC;border-radius:11px;padding:3px" });
-  seg.appendChild(el("div", {
-    style: `padding:7px 13px;border-radius:9px;font:600 12.5px/1 var(--ui);cursor:pointer;background:${state.view === "timeline" ? "#FBF8F1" : "transparent"};color:${state.view === "timeline" ? "#221F19" : "#8A8171"}`,
-    text: "Timeline", onClick: () => { state.view = "timeline"; ctx.render(); },
-  }));
-  seg.appendChild(el("div", {
-    style: `padding:7px 13px;border-radius:9px;font:600 12.5px/1 var(--ui);cursor:pointer;background:${state.view === "day" ? "#FBF8F1" : "transparent"};color:${state.view === "day" ? "#221F19" : "#8A8171"}`,
-    text: "Day", onClick: () => { state.view = "day"; ctx.render(); },
-  }));
-  head.appendChild(seg);
+  if (myBakes.length) {
+    const seg = el("div", { style: "display:flex;background:#E7DECC;border-radius:11px;padding:3px" });
+    seg.appendChild(el("div", {
+      style: `padding:7px 13px;border-radius:9px;font:600 12.5px/1 var(--ui);cursor:pointer;background:${state.view === "timeline" ? "#FBF8F1" : "transparent"};color:${state.view === "timeline" ? "#221F19" : "#8A8171"}`,
+      text: "Timeline", onClick: () => { state.view = "timeline"; ctx.render(); },
+    }));
+    seg.appendChild(el("div", {
+      style: `padding:7px 13px;border-radius:9px;font:600 12.5px/1 var(--ui);cursor:pointer;background:${state.view === "day" ? "#FBF8F1" : "transparent"};color:${state.view === "day" ? "#221F19" : "#8A8171"}`,
+      text: "Day", onClick: () => { state.view = "day"; ctx.render(); },
+    }));
+    head.appendChild(seg);
+  }
   const plusWrap = el("div", { style: "position:relative" });
   plusWrap.appendChild(el("div", {
     style: "width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:11px;color:#A65A2E;cursor:pointer",

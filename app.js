@@ -37,6 +37,7 @@ const state = {
   expandDone: false,
   newBakeOpen: false,
   pickerOpen: false, // starter picker
+  starterDetailOpen: false, // starter tab: false shows the card list when there's more than one
   locOpen: false,
   feedOpen: false,
   form: { s: 20, f: 100, w: 100, flour: "AP + rye" },
@@ -128,6 +129,7 @@ function go(tab) {
     state.editing = false;
     state.newBakeOpen = false;
     state.pickerOpen = false;
+    state.starterDetailOpen = false;
     state.shareText = null;
     state.shareTarget = null;
     root.scrollTop = 0;
