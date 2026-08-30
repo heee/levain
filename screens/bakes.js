@@ -45,8 +45,39 @@ export function renderBakes(ctx) {
     return wrap;
   }
 
-  if (state.view === "timeline") wrap.appendChild(timelineView(ctx));
-  else wrap.appendChild(dayView(ctx));
+  if (state.view === "timeline") {
+    wrap.appendChild(timelineView(ctx));
+  } else {
+    // Day view lines up every running bake's next twelve hours side by side —
+    // cramped in phone portrait. renderBakes only runs below the tablet
+    // breakpoint (app.js routes >=744px to renderTablet instead), so if
+    // we're here at all we're on a phone; ask for landscape instead of
+    // rendering a squeezed version. Once they've rotated to see it,
+    // `dayWasLandscape` is set, and tilting back to portrait — rather than
+    // showing the prompt again — drops straight back to the Timeline, since
+    // that's what they came from.
+    const landscape = window.innerWidth > window.innerHeight;
+    if (!landscape) {
+      if (state.dayWasLandscape) {
+        state.view = "timeline";
+        state.dayWasLandscape = false;
+        wrap.appendChild(timelineView(ctx));
+      } else {
+        wrap.appendChild(rotatePrompt());
+      }
+    } else {
+      state.dayWasLandscape = true;
+      wrap.appendChild(dayView(ctx));
+    }
+  }
+  return wrap;
+}
+
+function rotatePrompt() {
+  const wrap = el("div", { style: "padding:70px 40px 0;text-align:center;color:#A79C8A" });
+  wrap.appendChild(iconEl("rotate", "justify-content:center;margin-bottom:18px"));
+  wrap.appendChild(el("div", { style: "font:600 15.5px/1.3 var(--ui);color:#221F19", text: "Turn your phone sideways" }));
+  wrap.appendChild(el("div", { style: "font:400 13px/1.5 var(--ui);color:#8A8171;margin-top:8px", text: "Day view lines up every bake's next twelve hours — it needs the wider screen. Turning back to portrait switches back to Timeline." }));
   return wrap;
 }
 
@@ -99,24 +130,29 @@ function timelineView(ctx) {
 
   const section = el("div", {});
 
-  const navRow = el("div", { style: "padding:0 20px;display:flex;align-items:center;gap:10px;margin-bottom:14px;position:relative" });
-  navRow.appendChild(el("div", {
-    style: "width:32px;height:32px;border-radius:11px;background:#E9E1D0;display:flex;align-items:center;justify-content:center;font:400 17px/1 var(--ui);color:#6E6558;cursor:pointer;flex:none",
-    text: "‹", onClick: () => { state.idx = (state.idx - 1 + myBakes.length) % myBakes.length; ctx.render(); },
-  }));
-  const dots = el("div", { style: "flex:1;display:flex;gap:5px;justify-content:center" });
-  myBakes.forEach((b, i) => {
-    dots.appendChild(el("div", {
-      style: `height:6px;border-radius:6px;cursor:pointer;width:${i === state.idx ? "22px" : "6px"};background:${i === state.idx ? "#A65A2E" : "#D9CFBB"}`,
-      onClick: () => { state.idx = i; ctx.render(); },
+  // The arrows + dots are for picking between multiple running bakes — with
+  // only one, there's nothing to switch to and both controls are inert
+  // clutter above the header card.
+  if (myBakes.length > 1) {
+    const navRow = el("div", { style: "padding:0 20px;display:flex;align-items:center;gap:10px;margin-bottom:14px;position:relative" });
+    navRow.appendChild(el("div", {
+      style: "width:32px;height:32px;border-radius:11px;background:#E9E1D0;display:flex;align-items:center;justify-content:center;font:400 17px/1 var(--ui);color:#6E6558;cursor:pointer;flex:none",
+      text: "‹", onClick: () => { state.idx = (state.idx - 1 + myBakes.length) % myBakes.length; ctx.render(); },
     }));
-  });
-  navRow.appendChild(dots);
-  navRow.appendChild(el("div", {
-    style: "width:32px;height:32px;border-radius:11px;background:#E9E1D0;display:flex;align-items:center;justify-content:center;font:400 17px/1 var(--ui);color:#6E6558;cursor:pointer;flex:none",
-    text: "›", onClick: () => { state.idx = (state.idx + 1) % myBakes.length; ctx.render(); },
-  }));
-  section.appendChild(navRow);
+    const dots = el("div", { style: "flex:1;display:flex;gap:5px;justify-content:center" });
+    myBakes.forEach((b, i) => {
+      dots.appendChild(el("div", {
+        style: `height:6px;border-radius:6px;cursor:pointer;width:${i === state.idx ? "22px" : "6px"};background:${i === state.idx ? "#A65A2E" : "#D9CFBB"}`,
+        onClick: () => { state.idx = i; ctx.render(); },
+      }));
+    });
+    navRow.appendChild(dots);
+    navRow.appendChild(el("div", {
+      style: "width:32px;height:32px;border-radius:11px;background:#E9E1D0;display:flex;align-items:center;justify-content:center;font:400 17px/1 var(--ui);color:#6E6558;cursor:pointer;flex:none",
+      text: "›", onClick: () => { state.idx = (state.idx + 1) % myBakes.length; ctx.render(); },
+    }));
+    section.appendChild(navRow);
+  }
 
   const headerBox = el("div", { style: "padding:0 20px" }, [
     el("div", { style: "background:#FBF8F1;border-radius:20px;padding:19px;border:1px solid #EAE2D2" }, [
@@ -452,10 +488,18 @@ export function dayView(ctx) {
 
   const handBlocks = [];
   myBakes.forEach((b) => {
-    projForBake(b, store, now).forEach((x) => {
+    const pp = projForBake(b, store, now);
+    const cur = pp.find((x) => !x.isDone);
+    pp.forEach((x) => {
       if (x.isDone || !x.step.act) return;
       const startMin = (x.at - x.step.dur * MIN - now) / MIN;
-      if (startMin < -30 || startMin > WIN) return;
+      // A bake that's fallen more than 30 minutes behind schedule (every
+      // step after the one waiting on you inherits that lateness, since
+      // they're all projected from the same un-marked anchor) would
+      // otherwise have its *entire* remaining schedule fall outside this
+      // window and vanish from "Your hands" entirely — the one step actually
+      // waiting on you always belongs here regardless of how late it is.
+      if (x !== cur && (startMin < -30 || startMin > WIN)) return;
       handBlocks.push({
         left: Math.max(0, Math.min(98, (startMin / WIN) * 100)) + "%",
         width: Math.max(1.6, (x.step.act / WIN) * 100) + "%",
@@ -476,7 +520,11 @@ export function dayView(ctx) {
   const lanes = el("div", { style: "display:flex;flex-direction:column;gap:13px" });
   myBakes.forEach((b) => {
     const pp = projForBake(b, store, now);
-    const blocks = pp.filter((x) => !x.isDone && x.at > now - 30 * MIN && x.at < now + WIN * MIN).map((x) => {
+    const cur = pp.find((x) => !x.isDone);
+    // Same reasoning as the hands bar above: the step actually waiting on
+    // you always gets a block, even badly overdue, so a bake that's fallen
+    // behind schedule doesn't just disappear from its own lane.
+    const blocks = pp.filter((x) => !x.isDone && (x === cur || (x.at > now - 30 * MIN && x.at < now + WIN * MIN))).map((x) => {
       const startMin = Math.max(0, (x.at - x.step.dur * MIN - now) / MIN);
       const w = Math.max(3.5, (x.step.dur / WIN) * 100);
       const hands = x.step.act > 0;
