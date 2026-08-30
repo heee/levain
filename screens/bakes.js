@@ -95,6 +95,7 @@ function timelineView(ctx) {
   const curTone = tone(cur, now);
   const doneCount = p.filter((x) => x.isDone).length;
   const outAt = p[p.length - 1];
+  const finished = !cur;
 
   const section = el("div", {});
 
@@ -137,9 +138,16 @@ function timelineView(ctx) {
   ]);
   section.appendChild(headerBox);
 
+  if (finished) section.appendChild(finishCard(ctx, bake));
+
+  // Once every step is checked off there's no "current step" left to anchor
+  // the visible window to, so the normal "last done step stays visible"
+  // behavior would otherwise leave one dangling, unexplained checked-off row
+  // sitting under the finish prompt. Fold the whole history away instead —
+  // it's still there under "Show N completed steps".
   const lastDoneIdx = p.reduce((a, x) => (x.isDone ? x.i : a), -1);
-  const hiddenCount = state.expandDone ? 0 : Math.max(0, lastDoneIdx);
-  const visible = state.expandDone ? p : p.filter((x) => x.i >= lastDoneIdx);
+  const hiddenCount = state.expandDone ? 0 : (finished ? p.length : Math.max(0, lastDoneIdx));
+  const visible = state.expandDone ? p : (finished ? [] : p.filter((x) => x.i >= lastDoneIdx));
 
   const stepsWrap = el("div", { style: "padding:18px 20px 0 37px" });
   if (hiddenCount > 0) {
@@ -241,6 +249,105 @@ function timelineView(ctx) {
   });
   section.appendChild(stepsWrap);
   return section;
+}
+
+// A finished bake stays in `store.bakes` (and keeps showing in Bakes) until
+// the baker explicitly closes it out — that moment is what turns it into a
+// `store.log` entry. There's no automatic move: a bake left fully checked
+// off with the sheet dismissed just waits here for next time.
+function finishCard(ctx, bake) {
+  const { state } = ctx;
+  const open = state.finishOpenFor === bake.id;
+  const card = el("div", { style: "padding:14px 20px 0" });
+  const box = el("div", { style: "background:#F3EDE0;border:1px solid #E4DAC6;border-radius:18px;padding:17px" });
+  box.appendChild(el("div", { style: "font:600 14.5px/1.3 var(--ui);color:#221F19", text: "Every step's checked off." }));
+  box.appendChild(el("div", { style: "font:400 12.5px/1.45 var(--ui);color:#8A8171;margin-top:4px", text: "Close it out and it moves to your Log." }));
+
+  if (!open) {
+    box.appendChild(el("div", {
+      class: "btn-primary", style: "margin-top:13px;user-select:none;text-align:center", text: "Finish & add to Log",
+      onClick: () => {
+        state.finishOpenFor = bake.id;
+        state.finishStars = 5; state.finishNotes = ""; state.finishNext = "";
+        ctx.render();
+      },
+    }));
+  } else {
+    box.appendChild(finishSheet(ctx, bake));
+  }
+  card.appendChild(box);
+  return card;
+}
+
+function finishSheet(ctx, bake) {
+  const { state } = ctx;
+  const wrap = el("div", { style: "margin-top:14px" });
+
+  wrap.appendChild(el("div", { style: "font:600 10.5px/1 var(--num);letter-spacing:.1em;text-transform:uppercase;color:#A79C8A;margin-bottom:8px", text: "How'd it come out?" }));
+  const stars = el("div", { style: "display:flex;gap:6px;margin-bottom:14px" });
+  for (let i = 1; i <= 5; i++) {
+    const filled = i <= (state.finishStars || 5);
+    stars.appendChild(el("div", {
+      style: `font:400 26px/1 var(--ui);color:${filled ? "#A65A2E" : "#D9CFBB"};cursor:pointer`,
+      text: filled ? "★" : "☆",
+      onClick: () => { state.finishStars = i; ctx.render(); },
+    }));
+  }
+  wrap.appendChild(stars);
+
+  const notes = el("textarea", { class: "field", style: "min-height:64px;resize:vertical;font-size:14px;line-height:1.4", placeholder: "How did it go? (optional)" });
+  notes.value = state.finishNotes || "";
+  notes.addEventListener("input", (e) => { state.finishNotes = e.target.value; });
+  wrap.appendChild(notes);
+
+  const next = el("textarea", { class: "field", style: "margin-top:10px;min-height:52px;resize:vertical;font-size:14px;line-height:1.4", placeholder: "Next time... (optional)" });
+  next.value = state.finishNext || "";
+  next.addEventListener("input", (e) => { state.finishNext = e.target.value; });
+  wrap.appendChild(next);
+
+  const row = el("div", { style: "display:flex;gap:8px;margin-top:12px" });
+  row.appendChild(el("div", {
+    style: "background:#E7DECC;color:#5C5447;border-radius:11px;padding:11px 0;flex:none;width:80px;text-align:center;font:600 13px/1 var(--ui);cursor:pointer",
+    text: "Cancel", onClick: () => { state.finishOpenFor = null; ctx.render(); },
+  }));
+  row.appendChild(el("div", {
+    class: "btn-primary", style: "flex:1;text-align:center;user-select:none", text: "Save to Log",
+    onClick: () => finishBake(ctx, bake, { stars: state.finishStars || 5, notes: state.finishNotes, next: state.finishNext }),
+  }));
+  wrap.appendChild(row);
+  return wrap;
+}
+
+function finishBake(ctx, bake, { stars, notes, next }) {
+  const { state } = ctx;
+  const store = state.store;
+  const acc = store.accounts[state.accountIdx] || store.accounts[0];
+  // bake.startAt is only set for bakes begun via "Start a bake from" — older
+  // and seeded bakes have no startAt at all, only per-step `done` stamps —
+  // so fall back to the earliest of those, and finally to right now, rather
+  // than let `new Date(undefined)` produce an "Invalid Date" log entry.
+  const doneTimes = Object.values(bake.done || {});
+  const startedAt = bake.startAt != null ? bake.startAt : (doneTimes.length ? Math.min(...doneTimes) : Date.now());
+  const d = new Date(startedAt);
+  const when = d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" })
+    + " · " + bake.loaves + (bake.loaves === 1 ? " loaf" : " loaves");
+  store.log.push({
+    id: newId("l"),
+    name: bake.name,
+    when,
+    stars: "★".repeat(stars) + "☆".repeat(5 - stars),
+    notes: notes || "",
+    next: next || "",
+    ownerId: acc.id,
+    updatedAt: Date.now(),
+    deleted: false,
+  });
+  bake.deleted = true;
+  bake.updatedAt = Date.now();
+  state.finishOpenFor = null;
+  state.idx = 0;
+  ctx.persist();
+  ctx.render();
 }
 
 function speakTimer(ctx, bake, x, p) {
