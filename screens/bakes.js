@@ -335,12 +335,12 @@ function finishSheet(ctx, bake) {
   }
   wrap.appendChild(stars);
 
-  const notes = el("textarea", { class: "field", style: "min-height:64px;resize:vertical;font-size:14px;line-height:1.4", placeholder: "How did it go? (optional)" });
+  const notes = el("textarea", { class: "field", style: "min-height:64px;resize:vertical;font-size:16px;line-height:1.4", placeholder: "How did it go? (optional)" });
   notes.value = state.finishNotes || "";
   notes.addEventListener("input", (e) => { state.finishNotes = e.target.value; });
   wrap.appendChild(notes);
 
-  const next = el("textarea", { class: "field", style: "margin-top:10px;min-height:52px;resize:vertical;font-size:14px;line-height:1.4", placeholder: "Next time... (optional)" });
+  const next = el("textarea", { class: "field", style: "margin-top:10px;min-height:52px;resize:vertical;font-size:16px;line-height:1.4", placeholder: "Next time... (optional)" });
   next.value = state.finishNext || "";
   next.addEventListener("input", (e) => { state.finishNext = e.target.value; });
   wrap.appendChild(next);
