@@ -73,6 +73,15 @@ export function seedRecipes() {
     { id: "bananabread", name: "Sourdough Banana Bread", sub: "Discard, mashed banana and honey — a loaf pan, not a banneton.", method: "discard",
       rows: [["Butter", 113, "—"], ["Brown sugar", 142, "—"], ["Mashed banana", 397, "—"], ["Honey", 85, "—"], ["Eggs (2 large)", 100, "—"], ["Sourdough starter", 113, "—"], ["Flour", 240, "—"], ["Chopped nuts", 85, "—"]],
       creator: "Levain", source: "https://www.kingarthurbaking.com/recipes/sourdough-banana-bread-recipe" },
+    { id: "cheesecake", name: "Blueberry Banana Cheesecake", sub: "Greek yogurt, banana and egg blended smooth — no crust, no cream cheese.", method: "discard",
+      rows: [["Greek yogurt", 500, "—"], ["Bananas (2 medium)", 220, "—"], ["Eggs (3 large)", 150, "—"], ["Blueberries", 150, "—"]],
+      stepOverrides: {
+        "d-mix": { hint: "Blend the yogurt, bananas and eggs smooth, then gently fold in half the blueberries" },
+        "d-rest": { label: "Fill the pan", dur: 5, act: 5, hint: "No rest needed — pour into the pan and scatter the rest of the blueberries on top" },
+        "d-bake": { dur: 35, act: 3, hint: "350°F, 30–40 minutes, until set in the center and lightly golden" },
+        "d-cool": { dur: 60, hint: "Cool completely before slicing — chill an hour for the cleanest cut" },
+      },
+      creator: "Levain", source: "https://www.empirecipes.com/healthy-blueberry-banana-cheesecake/" },
   ];
 }
 
