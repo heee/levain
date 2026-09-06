@@ -98,7 +98,7 @@ export function renderRecipes(ctx) {
     }
     list.appendChild(el("div", {
       style: "background:#FBF8F1;border-radius:17px;padding:16px;cursor:pointer;border:1px solid #EAE2D2",
-      onClick: () => { state.openRecipeId = r.id; state.scale = 1; state.ingredientsCollapsed = false; state.starterReady = false; ctx.render(); },
+      onClick: () => { state.openRecipeId = r.id; state.scale = 1; state.ingredientsCollapsed = false; state.showPct = false; state.starterReady = false; ctx.render(); },
     }, [
       el("div", { style: "display:flex;align-items:flex-start;gap:10px" }, [
         // Title+sub stay in their own column so the badge's height (1 row for
@@ -126,7 +126,7 @@ export function renderRecipes(ctx) {
       discardedSeed.forEach((r) => {
         dList.appendChild(el("div", {
           style: "background:#F5F0E5;border-radius:17px;padding:16px;cursor:pointer;border:1.5px dashed #D8CDB8;opacity:.6",
-          onClick: () => { state.openRecipeId = r.id; state.scale = 1; state.ingredientsCollapsed = false; state.starterReady = false; ctx.render(); },
+          onClick: () => { state.openRecipeId = r.id; state.scale = 1; state.ingredientsCollapsed = false; state.showPct = false; state.starterReady = false; ctx.render(); },
         }, [
           el("div", { style: "font:400 19px/1.2 'Source Serif 4',Georgia,serif;color:#8A8171", text: r.name }),
           el("div", { style: "font:400 12.5px/1.45 var(--ui);color:#A79C8A;margin-top:6px", text: r.sub }),
@@ -266,6 +266,7 @@ function saveRecipe(ctx) {
   state.openRecipeId = id;
   state.scale = 1;
   state.ingredientsCollapsed = false;
+  state.showPct = false;
   ctx.persist();
   ctx.render();
 }
@@ -428,6 +429,14 @@ function ingredientsCard(ctx, recipe) {
     el("div", { style: `color:#A79C8A;display:flex;transition:transform .15s;transform:rotate(${collapsed ? -90 : 0}deg)`, html: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5l6 6 6-6"></path></svg>' }),
   ]);
   head.appendChild(label);
+  if (!editing) {
+    const showPct = !!state.showPct;
+    head.appendChild(el("div", {
+      style: `width:26px;height:26px;border-radius:8px;background:${showPct ? "#A65A2E" : "#E7DECC"};display:flex;align-items:center;justify-content:center;font:700 11.5px/1 var(--num);color:${showPct ? "#FFF" : "#6E6558"};cursor:pointer;flex:none`,
+      text: "%",
+      onClick: () => { state.showPct = !showPct; ctx.render(); },
+    }));
+  }
   head.appendChild(el("div", { style: "width:30px;height:30px;border-radius:10px;background:#E7DECC;display:flex;align-items:center;justify-content:center;font:500 17px/1 var(--ui);color:#6E6558;cursor:pointer", text: "−", onClick: () => { state.scale = Math.max(1, sc - 1); ctx.render(); } }));
   head.appendChild(el("div", { style: "font:500 14px/1 var(--num);min-width:34px;text-align:center", text: sc + "×" }));
   head.appendChild(el("div", { style: "width:30px;height:30px;border-radius:10px;background:#E7DECC;display:flex;align-items:center;justify-content:center;font:500 17px/1 var(--ui);color:#6E6558;cursor:pointer", text: "+", onClick: () => { state.scale = Math.min(4, sc + 1); ctx.render(); } }));
@@ -439,7 +448,8 @@ function ingredientsCard(ctx, recipe) {
     if (!editing) {
       const r = el("div", { style: "display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid #EFE8DA" });
       r.appendChild(el("div", { style: "flex:1;font:400 14.5px/1.3 var(--ui);color:#3A3529", text: row[0] }));
-      const display = row[2] && row[2] !== "—" ? row[2] : Math.round(row[1] * sc) + " g";
+      const grams = Math.round(row[1] * sc) + " g";
+      const display = state.showPct && row[2] && row[2] !== "—" ? row[2] : grams;
       r.appendChild(el("div", { style: "font:400 11.5px/1 var(--num);color:#B0A692;min-width:44px;text-align:right", text: display }));
       box.appendChild(r);
       return;

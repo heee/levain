@@ -99,9 +99,15 @@ const syncer = createSyncer({
   getLocalStore: () => state.store,
   onMergedStore: (remote) => {
     state.store = mergeStores(state.store, remote);
-    const liveAccounts = state.store.accounts.filter((a) => !a.deleted);
-    if (liveAccounts.length) state.store.accounts = liveAccounts;
-    if (!state.store.accounts[state.accountIdx]) state.accountIdx = 0;
+    // Deleted accounts must stay in the array as tombstones (see storage.js
+    // normalizeStore) — stripping them here, after merge, would both erase
+    // the tombstone before it's ever persisted and silently reindex every
+    // account after it, since state.accountIdx points into this same
+    // unfiltered array.
+    if (!state.store.accounts[state.accountIdx] || state.store.accounts[state.accountIdx].deleted) {
+      const liveIdx = state.store.accounts.findIndex((a) => !a.deleted);
+      state.accountIdx = liveIdx === -1 ? 0 : liveIdx;
+    }
     jsonStorage.write(LOCAL_KEYS.store, state.store);
     revalidateOpenReferences();
     // Same reasoning as the welcome-screen skips below: a sync can land at

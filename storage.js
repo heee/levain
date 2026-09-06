@@ -71,23 +71,28 @@ function backfillRecord(r) {
 export function normalizeStore(raw) {
   if (!raw || typeof raw !== "object") return defaultStore();
   const d = defaultStore();
-  const allAccounts = (Array.isArray(raw.accounts) && raw.accounts.length ? raw.accounts : d.accounts).map(backfillRecord);
-  const liveAccounts = allAccounts.filter((a) => !a.deleted);
-  const accounts = liveAccounts.length ? liveAccounts : allAccounts;
-  const firstId = accounts[0].id;
+  // Deleted accounts stay in the array as tombstones (state.accountIdx and
+  // welcome.js's live-filtering both index into the *unfiltered* list) — a
+  // sync merge only ever adds/updates records by id, so dropping a deleted
+  // account here would erase its tombstone locally and let a stale copy
+  // from another device resurrect it on the next merge.
+  const accounts = (Array.isArray(raw.accounts) && raw.accounts.length ? raw.accounts : d.accounts).map(backfillRecord);
+  const liveAccounts = accounts.filter((a) => !a.deleted);
+  const firstId = (liveAccounts[0] || accounts[0]).id;
   const bakes = (Array.isArray(raw.bakes) ? raw.bakes : d.bakes).map(backfillRecord);
   const starters = (Array.isArray(raw.starters) && raw.starters.length ? raw.starters : d.starters).map(backfillRecord);
   const log = (Array.isArray(raw.log) ? raw.log : d.log).map(backfillRecord).map((e) => (e.id ? e : { ...e, id: newId("log") }));
   const rawRecipes = (Array.isArray(raw.recipes) ? raw.recipes : d.recipes).map(backfillRecord);
   let recipes = rawRecipes.map((r) => (r.ownerId ? r : { ...r, ownerId: firstId }));
-  accounts.forEach((a) => {
+  liveAccounts.forEach((a) => {
     if (!recipes.some((r) => r.ownerId === a.id)) recipes = recipes.concat(seedRecipesFor(a.id));
   });
   // New seed recipes added after a baker's account already existed (e.g.
   // popovers) wouldn't otherwise reach them — the check above only fires for
   // accounts with zero recipes. Backfill just the missing ones by id, same
-  // updatedAt: 0 placeholder convention as a fresh seed.
-  accounts.forEach((a) => {
+  // updatedAt: 0 placeholder convention as a fresh seed. Deleted accounts are
+  // skipped so a removed baker doesn't keep accumulating fresh seed recipes.
+  liveAccounts.forEach((a) => {
     seedRecipesFor(a.id).forEach((seedRecipe) => {
       if (!recipes.some((r) => r.id === seedRecipe.id)) recipes = recipes.concat([seedRecipe]);
     });
