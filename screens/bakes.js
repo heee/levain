@@ -406,7 +406,7 @@ function speakTimer(ctx, bake, x) {
 // Opens/closes the "when was this done" time picker for a step, seeded to
 // the current time so the common case (marking it done right now, just
 // backdated slightly) needs the fewest taps.
-function toggleDonePicker(ctx, bake, stepId) {
+export function toggleDonePicker(ctx, bake, stepId) {
   const { state } = ctx;
   const key = bake.id + ":" + stepId;
   if (state.doneAtPickerFor === key) { state.doneAtPickerFor = null; ctx.render(); return; }
@@ -421,7 +421,7 @@ function toggleDonePicker(ctx, bake, stepId) {
   ctx.render();
 }
 
-function donePickerPanel(ctx, bake, x) {
+export function donePickerPanel(ctx, bake, x) {
   const { state } = ctx;
   const panel = el("div", { style: "margin-top:11px;background:#F3EDE0;border:1px solid #E4DAC6;border-radius:14px;padding:13px" });
   panel.appendChild(el("div", { style: "font:600 10.5px/1 var(--num);letter-spacing:.1em;text-transform:uppercase;color:#A79C8A;margin-bottom:10px", text: "When was this done?" }));

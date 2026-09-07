@@ -8,6 +8,7 @@ import { METHODS, IDXS } from "../game/methods.js";
 import { buildAdvice } from "../game/advice.js";
 import { starterLine, starterRise } from "./starter-vm.js";
 import { bakesFor, startersFor } from "../game/ownership.js";
+import { toggleDonePicker, donePickerPanel } from "./bakes.js";
 
 export function renderNow(ctx) {
   const { state } = ctx;
@@ -86,7 +87,7 @@ export function renderNow(ctx) {
   if (hero.late) {
     btnGroup.appendChild(el("div", {
       style: "border-radius:12px;height:38px;width:38px;box-sizing:border-box;border:1.5px solid #D9CFBB;color:#5C5447;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none",
-      onClick: () => { markDoneAt(ctx, hero.b, hero.c.step.id, hero.c.at); },
+      onClick: () => { toggleDonePicker(ctx, hero.b, hero.c.step.id); },
     }, [iconEl("clock")]));
   }
   btnGroup.appendChild(el("div", {
@@ -96,6 +97,9 @@ export function renderNow(ctx) {
   }));
   bottomRow.appendChild(btnGroup);
   heroCard.appendChild(bottomRow);
+  if (state.doneAtPickerFor === hero.b.id + ":" + hero.c.step.id) {
+    heroCard.appendChild(donePickerPanel(ctx, hero.b, hero.c));
+  }
   wrap.appendChild(heroCard);
 
   const advice = buildAdvice(cards, (b) => projForBake(b, store, now), now);
