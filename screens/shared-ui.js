@@ -22,10 +22,15 @@ export function clear(node) {
 }
 
 // Matches @media (min-width: 744px) in style.css — the tablet three-pane
-// layout kicks in there (iPad mini portrait's CSS width).
+// layout kicks in there (iPad mini portrait's CSS width). Checked against the
+// *smaller* viewport dimension, not just width: a phone rotated to landscape
+// can be wider than 744px (e.g. 844px on an iPhone 14) while its short side
+// stays phone-sized, and it should still get the phone layout — including
+// Bakes' own rotate-to-landscape Day view — rather than the tablet's
+// three-pane shell.
 export const TABLET_MIN_WIDTH = 744;
 export function isTabletViewport() {
-  return window.matchMedia(`(min-width: ${TABLET_MIN_WIDTH}px)`).matches;
+  return Math.min(window.innerWidth, window.innerHeight) >= TABLET_MIN_WIDTH;
 }
 
 export const ICONS = {

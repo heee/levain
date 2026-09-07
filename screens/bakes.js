@@ -65,6 +65,9 @@ export function renderBakes(ctx) {
         state.dayWasLandscape = false;
         wrap.appendChild(timelineView(ctx));
       } else {
+        wrap.style.display = "flex";
+        wrap.style.flexDirection = "column";
+        wrap.style.minHeight = "calc(100dvh - 90px)";
         wrap.appendChild(rotatePrompt());
       }
     } else {
@@ -76,7 +79,7 @@ export function renderBakes(ctx) {
 }
 
 function rotatePrompt() {
-  const wrap = el("div", { style: "padding:70px 40px 0;text-align:center;color:#A79C8A" });
+  const wrap = el("div", { style: "flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 40px;text-align:center;color:#A79C8A" });
   wrap.appendChild(iconEl("rotate", "justify-content:center;margin-bottom:18px"));
   wrap.appendChild(el("div", { style: "font:600 15.5px/1.3 var(--ui);color:#221F19", text: "Turn your phone sideways" }));
   wrap.appendChild(el("div", { style: "font:400 13px/1.5 var(--ui);color:#8A8171;margin-top:8px", text: "Day view lines up every bake's next twelve hours — it needs the wider screen. Turning back to portrait switches back to Timeline." }));
