@@ -70,6 +70,26 @@ export const METHODS = {
     { id: "p-bake2", label: "Drop to 375°F", dur: 18, act: 1, hint: "Reduce the oven to 375°F and bake another 15–20 minutes, until deeply golden and dry inside." },
     { id: "p-serve", label: "Serve", dur: 2, act: 2, hint: "Pierce each one with a knife to let the steam out, then serve immediately — they deflate fast once out of the oven." },
   ],
+  // Its own template rather than an override on "sourdough" — this recipe
+  // has no separate pre-shape bench rest and no post-shape cold retard (the
+  // overnight option lives inside the bulk step itself, as an alternative
+  // to a warm-spot rise, not an additional fridge stage after shaping), and
+  // bakes at a different temperature/duration — none of which fits the
+  // shared 14-step sourdough template without adding steps that don't
+  // belong in this recipe's actual instructions.
+  "choc-espresso": [
+    { id: "ce-mix", label: "Mix the dough", dur: 15, act: 15, hint: "Combine espresso, warm water, and cacao and let it bloom. Add starter, flour, and salt. Mix until a shaggy dough forms." },
+    { id: "ce-rest", label: "Rest", dur: 30, act: 0, hint: "Covered, 30 minutes." },
+    { id: "ce-sf1", label: "Stretch & fold 1", dur: 30, act: 5, hint: "Plain fold." },
+    { id: "ce-sf2", label: "Stretch & fold 2", dur: 30, act: 5, hint: "Fold in half the chocolate chips." },
+    { id: "ce-sf3", label: "Stretch & fold 3", dur: 5, act: 5, hint: "Fold in the rest of the chocolate chips, then leave it alone." },
+    { id: "ce-bulk", label: "Bulk ferment", dur: 420, act: 0, judge: true, hint: "6–8 hours in a warm spot until doubled, or overnight in the fridge." },
+    { id: "ce-shape", label: "Final shape", dur: 15, act: 15, hint: "Shape into a boule or batard." },
+    { id: "ce-preheat", label: "Preheat Dutch oven", dur: 45, act: 2, hint: "450°F, at least 45 minutes." },
+    { id: "ce-bake1", label: "Bake, lid on", dur: 30, act: 5, hint: "450°F, 30 minutes." },
+    { id: "ce-bake2", label: "Bake, lid off", dur: 15, act: 2, hint: "450°F, 15 minutes." },
+    { id: "ce-cool", label: "Rest before cutting", dur: 20, act: 0, hint: "20 minutes before cutting." },
+  ],
 };
 
 export const CUMS = {};
@@ -89,6 +109,7 @@ export const METHOD_LABELS = {
   pizza: "Pizza",
   discard: "Discard bake",
   popovers: "Popovers",
+  "choc-espresso": "Chocolate espresso sourdough",
 };
 
 export const METHOD_TITLES = {
@@ -98,6 +119,7 @@ export const METHOD_TITLES = {
   pizza: "Pizza method",
   discard: "Discard method",
   popovers: "Popovers method",
+  "choc-espresso": "Chocolate espresso sourdough method",
 };
 
 // Registers a one-off custom method (from the recipe builder's free-form
